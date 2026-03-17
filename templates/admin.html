@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundPass — Panel Staff</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- jsQR: lee QR desde pixels de canvas. Sin wrappers, sin bugs. -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+  <style>
+    :root { --gold:#f0a500; --dark:#080810; --card:#12121e; --border:rgba(240,165,0,0.25); }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--dark); color:#fff; font-family:'Inter',sans-serif; min-height:100vh; }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0;
+      background:radial-gradient(ellipse 50% 40% at 50% 30%, rgba(100,60,200,0.06) 0%, transparent 70%);
+    }
+    .navbar { border-bottom:1px solid var(--border); background:rgba(8,8,16,0.92); backdrop-filter:blur(12px); }
+    .navbar-brand span { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:var(--gold); }
+    .badge-staff { background:rgba(240,165,0,0.1); color:var(--gold); border:1px solid var(--border); border-radius:4px; font-size:.72rem; letter-spacing:1.5px; padding:3px 10px; }
+    .panel { position:relative; z-index:1; max-width:520px; margin:56px auto; padding:0 16px 40px; }
+    .panel-card { background:var(--card); border:1px solid var(--border); border-radius:24px; padding:36px; }
+    .panel-title { font-family:'Bebas Neue',sans-serif; font-size:1.9rem; letter-spacing:1px; margin-bottom:4px; }
+    .panel-sub { color:#444; font-size:.8rem; margin-bottom:28px; }
+
+    .desktop-section { display:block; }
+    .mobile-section  { display:none; }
+    @media (max-width:768px) {
+      .desktop-section { display:none !important; }
+      .mobile-section  { display:block !important; }
+    }
+
+    .code-input {
+      background:rgba(255,255,255,0.04) !important; border:2px solid #1e1e30 !important;
+      color:#fff !important; border-radius:12px !important; padding:14px 18px !important;
+      font-family:'Courier New',monospace; font-size:.95rem !important; letter-spacing:1px;
+      transition:border-color .2s;
+    }
+    .code-input:focus { border-color:var(--gold) !important; box-shadow:0 0 0 3px rgba(240,165,0,0.1) !important; }
+    .code-input::placeholder { color:#2a2a3a !important; font-family:'Inter',sans-serif; }
+    .btn-verify {
+      width:100%; padding:14px; background:linear-gradient(135deg,#6a3aff,#4c27c0);
+      color:#fff; font-weight:600; font-size:1rem; border:none; border-radius:12px;
+      cursor:pointer; transition:transform .2s, box-shadow .2s;
+    }
+    .btn-verify:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(106,58,255,0.35); }
+
+    .btn-scan {
+      width:100%; padding:22px 20px; background:linear-gradient(135deg,#f0a500,#c8870a);
+      color:#000; font-weight:800; font-size:1.15rem; border:none; border-radius:16px;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:12px;
+      box-shadow:0 8px 30px rgba(240,165,0,0.25); transition:transform .15s;
+    }
+    .btn-scan:active { transform:scale(0.97); }
+
+    /* El video está oculto — solo lo usamos para leer pixels */
+    #qr-video { display:none; }
+
+    /* El canvas muestra el feed de cámara al usuario */
+    #qr-canvas {
+      display:none; width:100%; border-radius:16px;
+      border:2px solid var(--border); margin-top:16px;
+      background:#000;
+    }
+
+    .scan-overlay {
+      display:none; position:relative; margin-top:16px;
+    }
+    .scan-overlay canvas { width:100%; border-radius:16px; border:2px solid var(--border); }
+    /* Mira dorada encima del canvas */
+    .aim {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:55%; aspect-ratio:1/1; border:3px solid var(--gold);
+      border-radius:12px; pointer-events:none;
+      box-shadow:0 0 0 1000px rgba(0,0,0,0.4);
+    }
+
+    .scan-status {
+      display:none; margin-top:12px; padding:12px 16px; border-radius:10px;
+      font-size:.85rem; text-align:center;
+      background:rgba(240,165,0,0.07); border:1px solid var(--border); color:var(--gold);
+    }
+    .btn-cancelar {
+      display:none; width:100%; margin-top:10px; padding:11px;
+      background:transparent; border:1px solid #2a2a3a; color:#666;
+      border-radius:10px; cursor:pointer; font-size:.85rem;
+    }
+
+    .result-card { border-radius:16px; padding:22px; margin-top:26px; animation:fadeIn .4s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+    .result-valido   { background:rgba(25,200,100,0.07);  border:2px solid rgba(25,200,100,0.3); }
+    .result-usado    { background:rgba(255,193,7,0.07);   border:2px solid rgba(255,193,7,0.25); }
+    .result-invalido { background:rgba(220,53,69,0.07);   border:2px solid rgba(220,53,69,0.25); }
+    .r-icon  { font-size:2.2rem; }
+    .r-title { font-family:'Bebas Neue',sans-serif; font-size:1.45rem; letter-spacing:1px; }
+    .r-msg   { color:#777; font-size:.85rem; margin:3px 0 0; }
+    .result-valido   .r-title { color:#19c864; }
+    .result-usado    .r-title { color:#ffc107; }
+    .result-invalido .r-title { color:#ff6b7a; }
+    .ticket-detail { margin-top:18px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.05); }
+    .td-row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:.85rem; }
+    .td-row:last-child { border-bottom:none; }
+    .td-label { color:#444; font-size:.72rem; text-transform:uppercase; letter-spacing:1px; }
+    .td-value { color:#ccc; font-weight:500; }
+    .back-link { display:block; text-align:center; color:#333; font-size:.78rem; margin-top:22px; text-decoration:none; transition:color .2s; }
+    .back-link:hover { color:var(--gold); }
+    .alert-danger  { background:rgba(220,53,69,0.1); color:#ff6b7a; border:1px solid rgba(220,53,69,0.2); border-radius:10px; }
+    .alert-warning { background:rgba(255,193,7,0.08); color:#ffc107; border:1px solid rgba(255,193,7,0.15); border-radius:10px; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="/"><span>🎸 SoundPass</span></a>
+      <span class="badge-staff ms-auto"><i class="bi bi-shield-lock me-1"></i>STAFF ACCESS</span>
+    </div>
+  </nav>
+
+  <div class="panel">
+    <div class="panel-card">
+
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div style="background:rgba(106,58,255,0.12);border:1px solid rgba(106,58,255,0.25);border-radius:12px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🔍</div>
+        <div>
+          <div class="panel-title">Validar Ticket</div>
+          <div class="panel-sub">Verifica el código QR o UUID del asistente</div>
+        </div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ msg }}
+          </div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+
+      <!-- DESKTOP -->
+      <div class="desktop-section">
+        <form action="/validar" method="POST">
+          <div class="mb-3">
+            <label class="form-label" style="color:#888;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">Código de acceso (UUID)</label>
+            <input type="text" name="codigo" class="form-control code-input"
+                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                   value="{{ codigo_buscado if codigo_buscado else '' }}"
+                   autocomplete="off" required />
+          </div>
+          <button type="submit" class="btn-verify">
+            <i class="bi bi-search me-2"></i>Verificar Código
+          </button>
+        </form>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="mobile-section">
+        <form action="/validar" method="POST" id="qr-form">
+          <input type="hidden" name="codigo" id="qr-codigo" />
+        </form>
+
+        <button class="btn-scan" id="btn-scan" onclick="iniciarEscaner()">
+          <i class="bi bi-qr-code-scan"></i>
+          Escanear QR del Ticket
+        </button>
+
+        <!-- Video oculto: fuente de pixels para jsQR -->
+        <video id="qr-video" autoplay muted playsinline></video>
+
+        <!-- Canvas visible: muestra la cámara + mira -->
+        <div class="scan-overlay" id="scan-overlay">
+          <canvas id="qr-canvas"></canvas>
+          <div class="aim"></div>
+        </div>
+
+        <div class="scan-status" id="scan-status">
+          <i class="bi bi-camera me-2"></i>Apunta al código QR...
+        </div>
+
+        <button class="btn-cancelar" id="btn-cancelar" onclick="detenerEscaner()">
+          <i class="bi bi-x-circle me-2"></i>Cancelar
+        </button>
+      </div>
+
+      {% if resultado %}
+        <div class="result-card result-{{ resultado.estado }}">
+          <div class="d-flex align-items-center gap-3 mb-1">
+            <div class="r-icon">
+              {% if resultado.estado == 'valido' %}✅{% elif resultado.estado == 'usado' %}⚠️{% else %}❌{% endif %}
+            </div>
+            <div>
+              <div class="r-title">
+                {% if resultado.estado == 'valido' %}Acceso Permitido{% elif resultado.estado == 'usado' %}Ya Ingresado{% else %}Ticket Inválido{% endif %}
+              </div>
+              <div class="r-msg">{{ resultado.mensaje }}</div>
+            </div>
+          </div>
+          {% if resultado.ticket %}
+            <div class="ticket-detail">
+              <div class="td-row"><span class="td-label">Nombre</span><span class="td-value">{{ resultado.ticket.nombre }}</span></div>
+              <div class="td-row"><span class="td-label">Zona</span><span class="td-value" style="color:var(--gold)">{{ resultado.ticket.zona }}</span></div>
+              <div class="td-row"><span class="td-label">Estado</span>
+                <span class="td-value" style="color:{% if resultado.ticket.estado == 'Activo' %}#19c864{% else %}#ffc107{% endif %}">{{ resultado.ticket.estado }}</span>
+              </div>
+              <div class="td-row"><span class="td-label">Comprado</span><span class="td-value" style="font-size:.78rem;">{{ resultado.ticket.fecha_compra }}</span></div>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    </div>
+    <a href="/" class="back-link"><i class="bi bi-arrow-left me-1"></i>Volver a la tienda</a>
+  </div>
+
+  <script>
+  // ═══════════════════════════════════════════════════════
+  //  ESCÁNER QR con jsQR
+  //
+  //  Técnica: Canvas loop
+  //    1. getUserMedia() abre la cámara → stream va al <video> oculto
+  //    2. requestAnimationFrame dibuja cada frame del video en un <canvas>
+  //    3. jsQR analiza los pixels del canvas buscando un QR
+  //    4. Si encuentra → envía el código a Flask
+  //
+  //  jsQR trabaja directo con pixels ImageData — no necesita
+  //  wrappers ni configuración especial. Funciona en Safari iOS.
+  // ═══════════════════════════════════════════════════════
+
+  let stream      = null;   // MediaStream de la cámara
+  let scanLoop    = null;   // ID del requestAnimationFrame
+  let escaneando  = false;  // Flag para detener el loop
+
+  const video    = document.getElementById('qr-video');
+  const canvas   = document.getElementById('qr-canvas');
+  const ctx      = canvas.getContext('2d');
+  const overlay  = document.getElementById('scan-overlay');
+  const status   = document.getElementById('scan-status');
+  const btnScan  = document.getElementById('btn-scan');
+  const btnCancel= document.getElementById('btn-cancelar');
+  const form     = document.getElementById('qr-form');
+  const inputCod = document.getElementById('qr-codigo');
+
+  async function iniciarEscaner() {
+    btnScan.style.display   = 'none';
+    overlay.style.display   = 'block';
+    status.style.display    = 'block';
+    btnCancel.style.display = 'block';
+    setStatus('gold', '📷 Iniciando cámara...');
+
+    try {
+      // Abrir cámara trasera
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+
+      video.srcObject = stream;
+
+      // Esperar a que el video cargue metadata (necesario en Safari)
+      video.addEventListener('loadedmetadata', () => {
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        setStatus('gold', '🔍 Apunta al código QR del ticket...');
+        escaneando = true;
+        leerFrame();
+      }, { once: true });
+
+      await video.play();
+
+    } catch(err) {
+      if (err.name === 'NotAllowedError') {
+        setStatus('red', '🔒 Permiso denegado. Toca AA → Configuración del sitio → Cámara → Permitir');
+      } else {
+        setStatus('red', '⚠️ Error al abrir cámara: ' + err.message);
+      }
+      resetUI();
+    }
+  }
+
+  function leerFrame() {
+    if (!escaneando) return;
+
+    // Solo procesar si el video tiene dimensiones reales
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+
+      // Dibujar el frame actual del video en el canvas (visible para el usuario)
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Obtener los pixels del canvas como array de bytes RGBA
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // jsQR analiza los pixels y retorna el QR si lo encuentra
+      const qr = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'  // Más rápido — nuestro QR no está invertido
+      });
+
+      if (qr && qr.data) {
+        // ── QR ENCONTRADO ──
+        escaneando = false;
+
+        // Dibujar borde verde alrededor del QR detectado
+        dibujarBorde(qr.location);
+
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        setStatus('green', '✅ QR detectado. Verificando...');
+
+        // Pequeña pausa para que el usuario vea el feedback visual
+        setTimeout(() => {
+          detenerStream();
+          inputCod.value = qr.data;
+          form.submit();
+        }, 600);
+
+        return; // No continuar el loop
+      }
+    }
+
+    // No se encontró QR → siguiente frame
+    scanLoop = requestAnimationFrame(leerFrame);
+  }
+
+  // Dibuja un rectángulo verde alrededor del QR detectado
+  function dibujarBorde(loc) {
+    ctx.beginPath();
+    ctx.moveTo(loc.topLeftCorner.x,     loc.topLeftCorner.y);
+    ctx.lineTo(loc.topRightCorner.x,    loc.topRightCorner.y);
+    ctx.lineTo(loc.bottomRightCorner.x, loc.bottomRightCorner.y);
+    ctx.lineTo(loc.bottomLeftCorner.x,  loc.bottomLeftCorner.y);
+    ctx.closePath();
+    ctx.lineWidth   = 4;
+    ctx.strokeStyle = '#19c864';
+    ctx.stroke();
+  }
+
+  function detenerStream() {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    video.srcObject = null;
+  }
+
+  function detenerEscaner() {
+    escaneando = false;
+    if (scanLoop) cancelAnimationFrame(scanLoop);
+    detenerStream();
+    resetUI();
+  }
+
+  function resetUI() {
+    btnScan.style.display   = 'flex';
+    overlay.style.display   = 'none';
+    btnCancel.style.display = 'none';
+  }
+
+  function setStatus(color, msg) {
+    const estilos = {
+      gold:  ['var(--gold)', 'rgba(240,165,0,0.07)',  'var(--border)'],
+      green: ['#19c864',     'rgba(25,200,100,0.07)', 'rgba(25,200,100,0.3)'],
+      red:   ['#ff6b7a',     'rgba(220,53,69,0.07)',  'rgba(220,53,69,0.3)'],
+    };
+    const [color_, bg, border] = estilos[color];
+    status.style.color       = color_;
+    status.style.background  = bg;
+    status.style.borderColor = border;
+    status.innerHTML         = msg;
+  }
+  </script>
+
+</body>
+</html>

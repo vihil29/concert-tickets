@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundPass — Compra tu Ticket</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --dark:   #080810;
+      --card:   #11111c;
+      --border: rgba(255,255,255,0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--dark); color: #fff;
+      font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden;
+    }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background:
+        radial-gradient(ellipse 55% 40% at 15% 55%, rgba(255,180,0,0.05) 0%, transparent 70%),
+        radial-gradient(ellipse 45% 35% at 85% 25%, rgba(80,160,255,0.05) 0%, transparent 70%);
+    }
+
+    /* ── Navbar ── */
+    .navbar { border-bottom:1px solid var(--border); background:rgba(8,8,16,0.92); backdrop-filter:blur(14px); position:sticky; top:0; z-index:200; }
+    .navbar-brand span { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:#f0a500; }
+    .nav-staff { font-size:.72rem; letter-spacing:1.5px; text-transform:uppercase; color:#555 !important;
+      border:1px solid #1e1e2e; border-radius:6px; padding:5px 14px !important; transition:all .2s; }
+    .nav-staff:hover { color:#f0a500 !important; border-color:rgba(240,165,0,0.3); }
+
+    /* ── Hero ── */
+    .hero { position:relative; z-index:1; text-align:center; padding:48px 20px 24px; }
+    .hero-badge { display:inline-block; font-size:.7rem; letter-spacing:3px; text-transform:uppercase;
+      color:#f0a500; border:1px solid rgba(240,165,0,0.25); border-radius:50px; padding:5px 18px; margin-bottom:18px; }
+    .hero h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.6rem,8vw,5.5rem);
+      line-height:.95; color:#fff; text-shadow:0 0 50px rgba(240,165,0,0.2); margin-bottom:10px; }
+    .hero h1 span { color:#f0a500; }
+    .hero p { color:#666; font-size:.9rem; }
+
+    /* ── Main layout ── */
+    .main-layout {
+      position:relative; z-index:1;
+      display:grid; grid-template-columns:1fr 360px; gap:22px;
+      max-width:1080px; margin:0 auto 60px; padding:0 18px; align-items:start;
+    }
+    @media(max-width:860px){ .main-layout{ grid-template-columns:1fr; } }
+
+    /* ══════════════════════════════
+       MAPA ESTADIO
+    ══════════════════════════════ */
+    .stadium-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:22px; padding:24px;
+    }
+    .stadium-card h3 { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:2px; color:#888; margin-bottom:3px; }
+    .stadium-card p  { color:#444; font-size:.75rem; margin-bottom:14px; }
+
+    /* Leyenda dinámica */
+    .legend { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+    .leg-item {
+      display:flex; align-items:center; gap:7px;
+      font-size:.72rem; color:#777; padding:4px 10px;
+      background:rgba(255,255,255,0.03); border:1px solid #1a1a28;
+      border-radius:6px; cursor:pointer; transition:all .2s;
+      white-space:nowrap;
+    }
+    .leg-item:hover { color:#fff; border-color:rgba(255,255,255,0.15); }
+    .leg-item.active { color:#fff; }
+    .leg-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+    /* SVG wrapper */
+    .svg-wrap { width:100%; aspect-ratio:1/0.88; position:relative; }
+    .svg-wrap svg { width:100%; height:100%; }
+
+    /* ── Estilos base de cada zona (color definido inline via CSS var) ── */
+    .z {
+      cursor:pointer;
+      transition: fill .18s, filter .18s, stroke-width .18s;
+      stroke-width:1.5;
+    }
+    .z:hover   { filter:brightness(1.35) drop-shadow(0 0 6px var(--zc)); stroke-width:2; }
+    .z.active  { filter:brightness(1.5)  drop-shadow(0 0 12px var(--zc)); stroke-width:3; }
+
+    /* Escenario y fondo */
+    .z-stage  { fill:#1c1c30; stroke:#2e2e50; stroke-width:1.5; }
+    .z-outer  { fill:rgba(255,255,255,0.015); stroke:#181828; stroke-width:2; }
+    .z-foh    { fill:#0d0d1a; stroke:#252535; stroke-width:1; }
+
+    /* Labels SVG */
+    .lbl {
+      font-family:'Bebas Neue',sans-serif; font-size:10px; letter-spacing:1.2px;
+      text-anchor:middle; dominant-baseline:middle;
+      pointer-events:none; user-select:none;
+    }
+    .lbl-stage { fill:#666; font-size:9.5px; }
+    .lbl-foh   { fill:#333; font-size:7px; }
+
+    /* Tooltip */
+    .tip {
+      position:absolute; background:rgba(6,6,16,0.97);
+      border:1px solid rgba(255,255,255,0.1); border-radius:11px;
+      padding:11px 15px; font-size:.8rem; pointer-events:none;
+      opacity:0; transition:opacity .15s; white-space:nowrap; z-index:50;
+      backdrop-filter:blur(12px);
+    }
+    .tip.on { opacity:1; }
+    .tip-name  { font-weight:700; color:#fff; margin-bottom:3px; }
+    .tip-price { font-family:'Bebas Neue',sans-serif; font-size:1.15rem; }
+    .tip-desc  { color:#555; font-size:.7rem; margin-top:2px; }
+
+    /* Barra de precio inferior */
+    .price-bar {
+      margin-top:12px; padding:11px 16px;
+      background:rgba(255,255,255,0.02); border:1px solid #181828; border-radius:10px;
+      display:flex; justify-content:space-between; align-items:center; min-height:46px;
+      transition:border-color .3s;
+    }
+    .price-bar .pb-left  { display:flex; flex-direction:column; gap:1px; }
+    .price-bar .pb-zone  { font-size:.7rem; color:#444; text-transform:uppercase; letter-spacing:.8px; }
+    .price-bar .pb-name  { font-size:.88rem; color:#888; }
+    .price-bar .pb-price { font-family:'Bebas Neue',sans-serif; font-size:1.7rem; color:#222; transition:color .3s; }
+    .price-bar .pb-price.lit { }
+
+    /* ══════════════════════════════
+       FORMULARIO
+    ══════════════════════════════ */
+    .form-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:22px; padding:28px; position:sticky; top:76px;
+    }
+    .form-card h2 { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:1px; margin-bottom:3px; }
+    .form-card .fsub { color:#444; font-size:.75rem; margin-bottom:20px; }
+
+    /* Zona pill seleccionada */
+    .sel-pill {
+      display:flex; align-items:center; gap:10px; padding:10px 14px;
+      border-radius:10px; margin-bottom:18px; border:1px solid #181828;
+      background:rgba(255,255,255,0.02); transition:all .35s;
+      min-height:52px;
+    }
+    .sel-pill .sp-icon { font-size:1.3rem; flex-shrink:0; transition:all .3s; }
+    .sel-pill .sp-info { flex:1; }
+    .sel-pill .sp-name { font-size:.88rem; font-weight:600; color:#333; transition:color .3s; }
+    .sel-pill .sp-zone { font-size:.7rem; color:#2a2a3a; transition:color .3s; text-transform:uppercase; letter-spacing:.7px; }
+    .sel-pill .sp-price { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:#222; transition:color .3s; flex-shrink:0; }
+    .sel-pill.active { border-color:rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); }
+
+    .form-control {
+      background:rgba(255,255,255,0.035) !important; border:1px solid #181828 !important;
+      color:#fff !important; border-radius:10px !important; padding:11px 15px !important;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .form-control:focus { border-color:rgba(255,255,255,0.25) !important; box-shadow:0 0 0 3px rgba(255,255,255,0.05) !important; }
+    .form-control::placeholder { color:#2a2a3a !important; }
+    .form-label { color:#666; font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+
+    .btn-buy {
+      width:100%; padding:14px; color:#000; font-weight:700; font-size:.9rem;
+      border:none; border-radius:12px; letter-spacing:1px; text-transform:uppercase;
+      cursor:pointer; transition:transform .2s, box-shadow .2s, opacity .25s, background .35s, color .35s;
+      background:#1e1e2e; color:#333;
+    }
+    .btn-buy.ready:hover { transform:translateY(-2px); }
+    .btn-buy:disabled, .btn-buy:not(.ready) { cursor:not-allowed; }
+
+    hr.div { border-color:#181828; margin:18px 0; }
+
+    .alert { border-radius:10px; }
+    .alert-danger  { background:rgba(220,53,69,0.1); color:#ff6b7a; border:1px solid rgba(220,53,69,0.2); }
+    .alert-warning { background:rgba(255,193,7,0.08); color:#ffc107; border:1px solid rgba(255,193,7,0.15); }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand" href="/"><span>🎸 SoundPass</span></a>
+      <a href="/admin" class="nav-staff ms-auto"><i class="bi bi-shield-lock me-1"></i>Staff</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge"><i class="bi bi-music-note-beamed me-1"></i>Festival 2025 · Estadio Nacional</div>
+    <h1>Elige tu<br/><span>Zona</span></h1>
+    <p>Cada sección tiene su propio precio · Haz clic para seleccionar</p>
+  </section>
+
+  <!-- FLASH -->
+  <div class="container position-relative mb-3" style="z-index:1;max-width:1080px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} d-flex align-items-center">
+          <i class="bi bi-exclamation-circle me-2"></i>{{ msg }}
+        </div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="main-layout">
+
+    <!-- MAPA -->
+    <div class="stadium-card">
+      <h3>Mapa del Recinto</h3>
+      <p>Pasa el cursor para ver detalles · Clic para seleccionar tu zona</p>
+
+      <!-- Leyenda generada por JS -->
+      <div class="legend" id="legend"></div>
+
+      <div class="svg-wrap" id="svgWrap">
+        <div class="tip" id="tooltip">
+          <div class="tip-name"  id="tt-name"></div>
+          <div class="tip-price" id="tt-price"></div>
+          <div class="tip-desc"  id="tt-desc"></div>
+        </div>
+
+        <svg viewBox="0 0 500 440" xmlns="http://www.w3.org/2000/svg">
+
+          <!-- Contorno exterior -->
+          <ellipse cx="250" cy="218" rx="240" ry="210" class="z-outer"/>
+
+          <!-- ── SECCIONES (cada una con data-id único) ── -->
+
+          <!-- General Norte -->
+          <path d="M 92,74 L 196,71 L 199,128 L 90,128 Z"
+                class="z" id="z-gn"
+                data-id="gn" />
+
+          <!-- General Sur -->
+          <path d="M 304,71 L 408,74 L 410,128 L 301,128 Z"
+                class="z" id="z-gs"
+                data-id="gs" />
+
+          <!-- Sombra Norte -->
+          <path d="M 28,146 L 87,136 L 90,232 L 28,232 Z"
+                class="z" id="z-sn"
+                data-id="sn" />
+
+          <!-- Sombra Sur -->
+          <path d="M 472,146 L 413,136 L 410,232 L 472,232 Z"
+                class="z" id="z-ss"
+                data-id="ss" />
+
+          <!-- Campo Izquierdo -->
+          <path d="M 90,138 L 196,133 L 199,300 L 90,300 Z"
+                class="z" id="z-ci"
+                data-id="ci" />
+
+          <!-- Campo Derecho -->
+          <path d="M 304,133 L 410,138 L 410,300 L 301,300 Z"
+                class="z" id="z-cd"
+                data-id="cd" />
+
+          <!-- General Centro -->
+          <path d="M 199,175 L 301,175 L 301,300 L 199,300 Z"
+                class="z" id="z-gc"
+                data-id="gc" />
+
+          <!-- Tribuna Norte -->
+          <path d="M 90,310 L 196,310 L 199,372 L 87,372 Z"
+                class="z" id="z-tn"
+                data-id="tn" />
+
+          <!-- Tribuna Sur -->
+          <path d="M 304,310 L 410,310 L 413,372 L 301,372 Z"
+                class="z" id="z-ts"
+                data-id="ts" />
+
+          <!-- Platea -->
+          <path d="M 199,300 L 301,300 L 304,372 L 196,372 Z"
+                class="z" id="z-pl"
+                data-id="pl" />
+
+          <!-- Nivel 12 -->
+          <path d="M 196,372 L 304,372 L 301,408 L 199,408 Z"
+                class="z" id="z-n12"
+                data-id="n12" />
+
+          <!-- ESCENARIO -->
+          <rect x="172" y="90" width="156" height="48" rx="7" class="z-stage"/>
+          <text x="250" y="117" class="lbl lbl-stage">ESCENARIO</text>
+
+          <!-- FOH -->
+          <rect x="233" y="228" width="34" height="24" rx="4" class="z-foh"/>
+          <text x="250" y="242" class="lbl lbl-foh">FOH</text>
+
+          <!-- Labels estáticos de cada zona (se colorean por JS) -->
+          <text x="143" y="99"  class="lbl" id="lbl-gn">GENERAL NORTE</text>
+          <text x="357" y="99"  class="lbl" id="lbl-gs">GENERAL SUR</text>
+          <text x="50"  y="182" class="lbl" id="lbl-sn" style="font-size:8px">SOMBRA<tspan x="50" dy="11">NORTE</tspan></text>
+          <text x="450" y="182" class="lbl" id="lbl-ss" style="font-size:8px">SOMBRA<tspan x="450" dy="11">SUR</tspan></text>
+          <text x="143" y="220" class="lbl" id="lbl-ci" style="font-size:9px">CAMPO IZQ</text>
+          <text x="357" y="220" class="lbl" id="lbl-cd" style="font-size:9px">CAMPO DER</text>
+          <text x="250" y="240" class="lbl" id="lbl-gc" style="font-size:9px">GRAL CENTRO</text>
+          <text x="143" y="343" class="lbl" id="lbl-tn" style="font-size:9px">TRIBUNA NORTE</text>
+          <text x="357" y="343" class="lbl" id="lbl-ts" style="font-size:9px">TRIBUNA SUR</text>
+          <text x="250" y="338" class="lbl" id="lbl-pl" style="font-size:10px">PLATEA</text>
+          <text x="250" y="391" class="lbl" id="lbl-n12" style="font-size:8.5px">NIVEL 12</text>
+        </svg>
+      </div>
+
+      <!-- Barra de precio -->
+      <div class="price-bar" id="priceBar">
+        <div class="pb-left">
+          <span class="pb-zone" id="pb-zone">—</span>
+          <span class="pb-name" id="pb-name">Selecciona una zona en el mapa</span>
+        </div>
+        <span class="pb-price" id="pb-price">$—</span>
+      </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="form-card">
+      <h2><i class="bi bi-ticket-perforated me-2" style="color:#f0a500"></i>Tus Datos</h2>
+      <p class="fsub">Selecciona una zona y completa el formulario</p>
+
+      <!-- Zona seleccionada visual -->
+      <div class="sel-pill" id="selPill">
+        <div class="sp-icon" id="sp-icon">🗺️</div>
+        <div class="sp-info">
+          <div class="sp-name" id="sp-name">Sin zona seleccionada</div>
+          <div class="sp-zone" id="sp-zone">Haz clic en el mapa</div>
+        </div>
+        <div class="sp-price" id="sp-price">—</div>
+      </div>
+
+      <form action="/comprar" method="POST" id="form-compra">
+        <!-- Envía el NOMBRE de la zona (ej: "Platea", "Tribuna Norte") -->
+        <input type="hidden" name="zona" id="zona-hidden" value="" />
+
+        <div class="mb-3">
+          <label class="form-label">Nombre completo</label>
+          <input type="text" class="form-control" name="nombre" placeholder="Ej: Juan Pérez" required />
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Correo electrónico</label>
+          <input type="email" class="form-control" name="correo" placeholder="Ej: juan@email.com" required />
+        </div>
+
+        <hr class="div" />
+
+        <button type="submit" class="btn-buy" id="btn-buy" disabled>
+          <i class="bi bi-map me-2"></i>Selecciona una zona
+        </button>
+      </form>
+
+      <div class="mt-3" style="color:#1e1e2e;font-size:.7rem;text-align:center;">
+        <i class="bi bi-shield-check me-1"></i>Código único · Un solo uso · Enviado a tu correo
+      </div>
+    </div>
+
+  </div><!-- /main-layout -->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+  // ════════════════════════════════════════════════════════
+  //  DEFINICIÓN DE ZONAS INDEPENDIENTES
+  //  Cada zona tiene: nombre, tipo (categoría), precio,
+  //  color propio, ícono y descripción.
+  // ════════════════════════════════════════════════════════
+  const ZONES = {
+    gn:  { nombre: 'General Norte',   tipo: 'General',  precio: 30,  color: '#4a9eff', icon: '🔵', desc: 'Tribuna lateral norte' },
+    gs:  { nombre: 'General Sur',     tipo: 'General',  precio: 30,  color: '#4a9eff', icon: '🔵', desc: 'Tribuna lateral sur' },
+    sn:  { nombre: 'Sombra Norte',    tipo: 'Preferente', precio: 65, color: '#a855f7', icon: '🟣', desc: 'Lateral con sombra, vista amplia' },
+    ss:  { nombre: 'Sombra Sur',      tipo: 'Preferente', precio: 65, color: '#a855f7', icon: '🟣', desc: 'Lateral con sombra, vista amplia' },
+    ci:  { nombre: 'Campo Izquierdo', tipo: 'VIP',      precio: 120, color: '#f0a500', icon: '🟡', desc: 'Asientos numerados, vista privilegiada' },
+    cd:  { nombre: 'Campo Derecho',   tipo: 'VIP',      precio: 120, color: '#f0a500', icon: '🟡', desc: 'Asientos numerados, vista privilegiada' },
+    gc:  { nombre: 'General Centro',  tipo: 'General',  precio: 45,  color: '#22d3ee', icon: '🩵', desc: 'Zona central, gran ambiente' },
+    tn:  { nombre: 'Tribuna Norte',   tipo: 'General',  precio: 35,  color: '#34d399', icon: '🟢', desc: 'Tribuna inferior norte' },
+    ts:  { nombre: 'Tribuna Sur',     tipo: 'General',  precio: 35,  color: '#34d399', icon: '🟢', desc: 'Tribuna inferior sur' },
+    pl:  { nombre: 'Platea',          tipo: 'VIP',      precio: 180, color: '#f43f5e', icon: '🔴', desc: 'Zona central premium, frente al escenario' },
+    n12: { nombre: 'Nivel 12',        tipo: 'General',  precio: 25,  color: '#94a3b8', icon: '⚪', desc: 'Acceso general posterior' },
+  };
+
+  // ── Aplicar color de cada zona al SVG y labels ──
+  Object.entries(ZONES).forEach(([id, z]) => {
+    const el  = document.getElementById(`z-${id}`);
+    const lbl = document.getElementById(`lbl-${id}`);
+    if (el) {
+      el.style.setProperty('--zc', z.color);
+      el.style.fill   = hexToRgba(z.color, 0.14);
+      el.style.stroke = z.color;
+    }
+    if (lbl) lbl.style.fill = hexToRgba(z.color, 0.65);
+  });
+
+  // ── Generar leyenda ──
+  const legendEl = document.getElementById('legend');
+  // Agrupar por tipo para la leyenda
+  const seen = {};
+  Object.values(ZONES).forEach(z => {
+    if (!seen[z.tipo]) {
+      seen[z.tipo] = z.color;
+      const item = document.createElement('div');
+      item.className = 'leg-item';
+      item.innerHTML = `<div class="leg-dot" style="background:${z.color}"></div>${z.tipo}`;
+      legendEl.appendChild(item);
+    }
+  });
+  // También agregar cada zona individual como chip pequeño
+  Object.entries(ZONES).forEach(([id, z]) => {
+    const item = document.createElement('div');
+    item.className = 'leg-item';
+    item.style.cursor = 'pointer';
+    item.innerHTML = `<div class="leg-dot" style="background:${z.color}"></div>${z.nombre} <span style="color:${z.color};margin-left:4px;font-family:'Bebas Neue'">$${z.precio}</span>`;
+    item.addEventListener('click', () => selectZone(id));
+    legendEl.appendChild(item);
+  });
+
+  // ── DOM refs ──
+  const tooltip  = document.getElementById('tooltip');
+  const ttName   = document.getElementById('tt-name');
+  const ttPrice  = document.getElementById('tt-price');
+  const ttDesc   = document.getElementById('tt-desc');
+  const svgWrap  = document.getElementById('svgWrap');
+  const pbZone   = document.getElementById('pb-zone');
+  const pbName   = document.getElementById('pb-name');
+  const pbPrice  = document.getElementById('pb-price');
+  const priceBar = document.getElementById('priceBar');
+  const selPill  = document.getElementById('selPill');
+  const spIcon   = document.getElementById('sp-icon');
+  const spName   = document.getElementById('sp-name');
+  const spZone   = document.getElementById('sp-zone');
+  const spPrice  = document.getElementById('sp-price');
+  const btnBuy   = document.getElementById('btn-buy');
+  const zonaHid  = document.getElementById('zona-hidden');
+
+  let currentId = null;
+
+  // ── Seleccionar zona ──
+  function selectZone(id) {
+    const z = ZONES[id];
+    if (!z) return;
+
+    // Quitar highlight anterior
+    if (currentId) {
+      const prev = document.getElementById(`z-${currentId}`);
+      if (prev) {
+        prev.classList.remove('active');
+        prev.style.fill = hexToRgba(ZONES[currentId].color, 0.14);
+      }
+    }
+    currentId = id;
+
+    // Highlight nueva zona
+    const el = document.getElementById(`z-${id}`);
+    if (el) {
+      el.classList.add('active');
+      el.style.fill = hexToRgba(z.color, 0.42);
+    }
+
+    // Formulario hidden
+    zonaHid.value = z.nombre;
+
+    // Barra de precio
+    pbZone.textContent  = z.tipo;
+    pbName.textContent  = z.nombre;
+    pbPrice.textContent = `$${z.precio}`;
+    pbPrice.style.color = z.color;
+    pbPrice.classList.add('lit');
+    priceBar.style.borderColor = hexToRgba(z.color, 0.3);
+
+    // Pill del formulario
+    selPill.classList.add('active');
+    selPill.style.borderColor = hexToRgba(z.color, 0.35);
+    selPill.style.background  = hexToRgba(z.color, 0.06);
+    spIcon.textContent  = z.icon;
+    spName.style.color  = z.color;
+    spName.textContent  = z.nombre;
+    spZone.style.color  = hexToRgba(z.color, 0.55);
+    spZone.textContent  = z.tipo;
+    spPrice.style.color = z.color;
+    spPrice.textContent = `$${z.precio}`;
+
+    // Botón
+    btnBuy.disabled = false;
+    btnBuy.classList.add('ready');
+    btnBuy.style.background = z.color;
+    btnBuy.style.color = isLight(z.color) ? '#000' : '#fff';
+    btnBuy.innerHTML = `<i class="bi bi-lightning-charge-fill me-2"></i>Comprar — ${z.nombre} ($${z.precio})`;
+    btnBuy.style.boxShadow = `0 6px 24px ${hexToRgba(z.color, 0.3)}`;
+  }
+
+  // ── Eventos hover/click en SVG ──
+  Object.keys(ZONES).forEach(id => {
+    const el = document.getElementById(`z-${id}`);
+    const z  = ZONES[id];
+    if (!el) return;
+
+    el.addEventListener('click', () => selectZone(id));
+
+    el.addEventListener('mouseenter', () => {
+      ttName.textContent  = z.nombre;
+      ttPrice.textContent = `$${z.precio} / persona`;
+      ttPrice.style.color = z.color;
+      ttDesc.textContent  = z.desc;
+      tooltip.classList.add('on');
+      tooltip.style.borderColor = hexToRgba(z.color, 0.4);
+    });
+
+    el.addEventListener('mousemove', (e) => {
+      const r  = svgWrap.getBoundingClientRect();
+      const x  = e.clientX - r.left;
+      const y  = e.clientY - r.top;
+      const tx = (x + 150 > r.width)  ? x - 158 : x + 14;
+      const ty = (y + 90  > r.height) ? y - 90  : y + 12;
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top  = ty + 'px';
+    });
+
+    el.addEventListener('mouseleave', () => tooltip.classList.remove('on'));
+  });
+
+  // ── Submit guard ──
+  document.getElementById('form-compra').addEventListener('submit', e => {
+    if (!zonaHid.value) {
+      e.preventDefault();
+      alert('Por favor selecciona una zona en el mapa del estadio.');
+    }
+  });
+
+  // ── Helpers ──
+  function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  function isLight(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return (r*299 + g*587 + b*114) / 1000 > 150;
+  }
+  </script>
+</body>
+</html>
