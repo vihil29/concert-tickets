@@ -27,12 +27,12 @@ app.secret_key = "clave_secreta_proyecto"
 DB_CONFIG = {
     "host":     "localhost",
     "user":     "root",
-    "password": "",
+    "password": os.getenv("DB_PASSWORD"),
     "database": "concert_tickets"
 }
 
-EMAIL_REMITENTE = "tazer3012@gmail.com"    # ← Tu Gmail
-EMAIL_APP_PASS  = "ugty mbww zgfe cerl"  # ← App Password de 16 caracteres
+EMAIL_REMITENTE = os.getenv("EMAIL_REMITENTE")    # ← Tu Gmail
+EMAIL_APP_PASS  = os.getenv("EMAIL_APP_PASS")  # ← App Password de 16 caracteres
 
 # Zonas válidas del mapa del estadio
 ZONAS_VALIDAS = [
