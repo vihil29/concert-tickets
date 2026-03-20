@@ -25,8 +25,8 @@ app = Flask(__name__)
 app.secret_key = "clave_secreta_proyecto"
 
 DB_CONFIG = {
-    "host":     "localhost",
-    "user":     "root",
+    "host":     "167.86.91.131",
+    "user":     os.getenv("DB_USER","soundpass"),
     "password": os.getenv("DB_PASSWORD"),
     "database": "concert_tickets"
 }
