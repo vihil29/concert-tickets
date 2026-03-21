@@ -18,7 +18,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text      import MIMEText
 from email.mime.image     import MIMEImage
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import mysql.connector
 
 # ─────────────────────────────────────────────
@@ -28,7 +28,7 @@ app = Flask(__name__)
 app.secret_key = "clave_secreta_proyecto"
 
 DB_CONFIG = {
-    "host":     "167.86.91.131",
+    "host":     os.getenv("DB_HOST", "localhost"),
     "user":     os.getenv("DB_USER","soundpass"),
     "password": os.getenv("DB_PASSWORD"),
     "database": "concert_tickets"
@@ -327,6 +327,185 @@ def validar():
 
     return render_template("admin.html", resultado=resultado, codigo_buscado=codigo)
 
+# ═══════════════════════════════════════════════════════════
+#  RUTAS API — Usadas por la PWA del staff
+#  Devuelven JSON en vez de HTML
+# ═══════════════════════════════════════════════════════════
+
+from flask import jsonify
+
+@app.route("/api/stats")
+def api_stats():
+    """
+    Estadísticas generales para el dashboard de la PWA.
+    Retorna: total vendidos, ingresados, activos y desglose por zona.
+    """
+    conn   = None
+    cursor = None
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Totales generales
+        cursor.execute("SELECT COUNT(*) as total FROM tickets")
+        total = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM tickets WHERE estado = 'Ingresado'")
+        ingresados = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM tickets WHERE estado = 'Activo'")
+        activos = cursor.fetchone()["total"]
+
+        # Desglose por zona
+        cursor.execute("""
+            SELECT zona, COUNT(*) as cantidad,
+                   SUM(CASE WHEN estado='Ingresado' THEN 1 ELSE 0 END) as ingresados
+            FROM tickets
+            GROUP BY zona
+            ORDER BY cantidad DESC
+        """)
+        por_zona = cursor.fetchall()
+
+        return jsonify({
+            "total": total,
+            "ingresados": ingresados,
+            "activos": activos,
+            "por_zona": por_zona
+        })
+
+    except mysql.connector.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
+
+
+@app.route("/api/tickets")
+def api_tickets():
+    """
+    Lista todos los tickets con paginación.
+    Query params: ?page=1&limit=20
+    """
+    page  = int(request.args.get("page",  1))
+    limit = int(request.args.get("limit", 20))
+    offset = (page - 1) * limit
+
+    conn   = None
+    cursor = None
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT * FROM tickets ORDER BY fecha_compra DESC LIMIT %s OFFSET %s",
+            (limit, offset)
+        )
+        tickets = cursor.fetchall()
+
+        # Convertir datetime a string para JSON
+        for t in tickets:
+            if t.get("fecha_compra"):
+                t["fecha_compra"] = t["fecha_compra"].strftime("%d/%m/%Y %H:%M")
+
+        cursor.execute("SELECT COUNT(*) as total FROM tickets")
+        total = cursor.fetchone()["total"]
+
+        return jsonify({"tickets": tickets, "total": total, "page": page})
+
+    except mysql.connector.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
+
+
+@app.route("/api/buscar")
+def api_buscar():
+    """
+    Busca tickets por nombre o correo.
+    Query param: ?q=texto
+    """
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"tickets": []})
+
+    conn   = None
+    cursor = None
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            """SELECT * FROM tickets
+               WHERE nombre LIKE %s OR correo LIKE %s
+               ORDER BY fecha_compra DESC LIMIT 30""",
+            (f"%{q}%", f"%{q}%")
+        )
+        tickets = cursor.fetchall()
+
+        for t in tickets:
+            if t.get("fecha_compra"):
+                t["fecha_compra"] = t["fecha_compra"].strftime("%d/%m/%Y %H:%M")
+
+        return jsonify({"tickets": tickets})
+
+    except mysql.connector.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
+
+
+@app.route("/api/validar", methods=["POST"])
+def api_validar():
+    """
+    Valida un código QR desde la PWA.
+    Recibe JSON: { "codigo": "uuid..." }
+    Retorna JSON con el resultado.
+    """
+    data   = request.get_json()
+    codigo = data.get("codigo", "").strip() if data else ""
+
+    if not codigo:
+        return jsonify({"estado": "error", "mensaje": "Código vacío"}), 400
+
+    conn   = None
+    cursor = None
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM tickets WHERE codigo = %s", (codigo,))
+        ticket = cursor.fetchone()
+
+        if not ticket:
+            return jsonify({"estado": "invalido", "mensaje": "Código no encontrado"})
+
+        if ticket["estado"] == "Ingresado":
+            if ticket.get("fecha_compra"):
+                ticket["fecha_compra"] = ticket["fecha_compra"].strftime("%d/%m/%Y %H:%M")
+            return jsonify({"estado": "usado", "mensaje": "Ticket ya utilizado", "ticket": ticket})
+
+        # Marcar como ingresado
+        cursor.execute("UPDATE tickets SET estado='Ingresado' WHERE codigo=%s", (codigo,))
+        conn.commit()
+
+        if ticket.get("fecha_compra"):
+            ticket["fecha_compra"] = ticket["fecha_compra"].strftime("%d/%m/%Y %H:%M")
+        ticket["estado"] = "Ingresado"
+
+        return jsonify({"estado": "valido", "mensaje": "Acceso permitido", "ticket": ticket})
+
+    except mysql.connector.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
+
+@app.route("/staff")
+    def staff():
+    """PWA del staff — instalable en Samsung."""
+    return render_template("staff.html")
 if __name__ == "__main__":
     # DESPUÉS — acepta conexiones desde cualquier dispositivo en la red
     app.run(debug=True, host="0.0.0.0", port=5000)
