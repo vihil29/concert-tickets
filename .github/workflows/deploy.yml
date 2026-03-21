@@ -1,24 +1,39 @@
-name: Deploy SoundPass to VPS
+# ═══════════════════════════════════════════════
+#  GitHub Actions — Deploy automático a VPS
+#  Se ejecuta cada vez que haces push a main
+# ═══════════════════════════════════════════════
+
+name: Deploy SoundPass
 
 on:
   push:
     branches:
-      - main
+      - main        # Solo cuando el push es a la rama main
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   # GitHub usa una máquina Ubuntu temporal
+
     steps:
-      - name: Actualizar código en VPS
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd /var/www/concert-tickets
-            git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt
-            # Aquí pondremos el reinicio del servicio de Flask después
+      # 1. Descarga el código del repo
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      # 2. Configura la llave SSH para conectarse al VPS
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      # 3. Conectarse al VPS y actualizar la app
+      - name: Deploy al VPS
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
+            cd /var/www/concert_tickets &&
+            git pull origin main &&
+            source venv/bin/activate &&
+            pip install -r requirements.txt &&
+            systemctl restart soundpass
+          '
