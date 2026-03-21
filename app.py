@@ -8,6 +8,9 @@ import threading                        # Envío de correo sin bloquear la web
 import smtplib                          # Envío de correos SMTP
 import base64                           # Convierte el QR a texto Base64
 import io                               # Buffer en memoria (sin guardar archivos)
+import os                               # Variables de entorno
+from dotenv import load_dotenv          # Lee el archivo .env
+load_dotenv()                           # Carga las variables al arrancar
 
 import qrcode                           # pip install qrcode[pil]
 
