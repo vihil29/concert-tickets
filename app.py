@@ -251,20 +251,19 @@ def comprar():
     qr_base64 = generar_qr_base64(codigo)
 
     # Paso 3: Guardar en base de datos
+    conn   = None
+    cursor = None
     try:
         conn   = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO tickets (codigo, nombre, correo, zona, estado) VALUES (%s,%s,%s,%s,'Activo')",
-            (codigo, nombre, correo, zona)
-        )
+        cursor.execute("INSERT INTO tickets (codigo, nombre, correo, zona, estado) VALUES (%s,%s,%s,%s,'Activo')", (codigo, nombre, correo, zona))
         conn.commit()
     except mysql.connector.Error as e:
         flash(f"Error al guardar el ticket: {e}", "danger")
         return redirect(url_for("index"))
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()
+        if conn:   conn.close()
 
     # Paso 4: Correo en hilo separado (no bloquea la página web)
     threading.Thread(
@@ -292,18 +291,14 @@ def admin():
 
 @app.route("/validar", methods=["POST"])
 def validar():
-    """
-    Valida el código del ticket (ingresado a mano o escaneado por QR).
-    Lógica:
-      → No existe  → inválido
-      → Ingresado  → ya usado, acceso denegado
-      → Activo     → válido, marca como 'Ingresado'
-    """
     codigo = request.form.get("codigo", "").strip()
 
     if not codigo:
         flash("Debes ingresar un código.", "warning")
         return redirect(url_for("admin"))
+
+    conn   = None  # ← agrega esto
+    cursor = None  # ← agrega esto
 
     try:
         conn   = get_db_connection()
@@ -327,11 +322,10 @@ def validar():
         flash(f"Error de base de datos: {e}", "danger")
         return redirect(url_for("admin"))
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()  # ← cambia esto
+        if conn:   conn.close()    # ← cambia esto
 
     return render_template("admin.html", resultado=resultado, codigo_buscado=codigo)
-
 
 if __name__ == "__main__":
     # DESPUÉS — acepta conexiones desde cualquier dispositivo en la red
