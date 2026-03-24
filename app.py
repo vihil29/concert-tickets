@@ -503,7 +503,7 @@ def api_validar():
         if conn:   conn.close()
 
 @app.route("/staff")
-    def staff():
+def staff():
     """PWA del staff — instalable en Samsung."""
     return render_template("staff.html")
 if __name__ == "__main__":
