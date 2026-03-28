@@ -18,14 +18,17 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text      import MIMEText
 from email.mime.image     import MIMEImage
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 import mysql.connector
 
 # ─────────────────────────────────────────────
 #  CONFIGURACIÓN
 # ─────────────────────────────────────────────
 app = Flask(__name__)
-app.secret_key = "clave_secreta_proyecto"
+app.secret_key = os.getenv("SECRET_KEY", "soundpass-secret-2025")
 
 DB_CONFIG = {
     "host":     os.getenv("DB_HOST", "localhost"),
@@ -221,11 +224,13 @@ def enviar_correo(destinatario: str, nombre: str, codigo: str, zona: str, qr_bas
 # ═══════════════════════════════════════════════════════════
 
 @app.route("/")
+@login_requerido
 def index():
     return render_template("index.html")
 
 
 @app.route("/comprar", methods=["POST"])
+@login_requerido
 def comprar():
     """
     Flujo de compra:
@@ -285,6 +290,7 @@ def comprar():
 # ═══════════════════════════════════════════════════════════
 
 @app.route("/admin")
+@staff_requerido
 def admin():
     return render_template("admin.html")
 
@@ -503,9 +509,190 @@ def api_validar():
         if conn:   conn.close()
 
 @app.route("/staff")
+@staff_requerido
 def staff():
     """PWA del staff — instalable en Samsung."""
     return render_template("staff.html")
+
+# ============================================================
+#  AUTENTICACIÓN — Agregar a app.py
+#  Pega este bloque DESPUÉS de los imports existentes
+# ============================================================
+
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import session
+
+# ── Asegúrate de que secret_key sea larga y segura en producción ──
+# app.secret_key ya está definida arriba, solo cámbiala por una más segura:
+# app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_proyecto")
+
+
+# ─────────────────────────────────────────────
+#  DECORADORES DE PROTECCIÓN
+# ─────────────────────────────────────────────
+
+def login_requerido(f):
+    """
+    Decorador: redirige al login si el usuario no está autenticado.
+    Uso: @login_requerido encima de cualquier ruta protegida.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("usuario_id"):
+            flash("Debes iniciar sesión para continuar.", "warning")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def staff_requerido(f):
+    """
+    Decorador: solo permite acceso a usuarios con rol staff o admin.
+    Redirige al index con error si el rol no es suficiente.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        rol = session.get("rol")
+        if not session.get("usuario_id"):
+            flash("Debes iniciar sesión.", "warning")
+            return redirect(url_for("login"))
+        if rol not in ("staff", "admin"):
+            flash("No tienes permisos para acceder a esta sección.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ─────────────────────────────────────────────
+#  RUTA: Login
+# ─────────────────────────────────────────────
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """
+    GET  → muestra el formulario de login
+    POST → valida credenciales y crea sesión
+    """
+    # Si ya está logueado, redirigir según rol
+    if session.get("usuario_id"):
+        return redirect(url_for("staff") if session.get("rol") in ("staff","admin") else url_for("index"))
+
+    if request.method == "POST":
+        correo   = request.form.get("correo", "").strip().lower()
+        password = request.form.get("password", "")
+
+        conn   = None
+        cursor = None
+        try:
+            conn   = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM usuarios WHERE correo = %s", (correo,))
+            usuario = cursor.fetchone()
+
+            if not usuario or not check_password_hash(usuario["password"], password):
+                flash("Correo o contraseña incorrectos.", "danger")
+                return render_template("login.html")
+
+            # Crear sesión
+            session.permanent = True
+            session["usuario_id"] = usuario["id"]
+            session["nombre"]     = usuario["nombre"]
+            session["correo"]     = usuario["correo"]
+            session["rol"]        = usuario["rol"]
+
+            # Redirigir según rol
+            if usuario["rol"] in ("staff", "admin"):
+                return redirect(url_for("staff"))
+            return redirect(url_for("index"))
+
+        except mysql.connector.Error as e:
+            flash(f"Error de base de datos: {e}", "danger")
+            return render_template("login.html")
+        finally:
+            if cursor: cursor.close()
+            if conn:   conn.close()
+
+    return render_template("login.html")
+
+
+# ─────────────────────────────────────────────
+#  RUTA: Registro
+# ─────────────────────────────────────────────
+
+@app.route("/registro", methods=["GET", "POST"])
+def registro():
+    """
+    Registro público — solo crea usuarios con rol 'cliente'.
+    Los roles staff/admin se asignan manualmente en la DB.
+    """
+    if session.get("usuario_id"):
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        nombre   = request.form.get("nombre",   "").strip()
+        correo   = request.form.get("correo",   "").strip().lower()
+        password = request.form.get("password", "")
+        confirm  = request.form.get("confirm",  "")
+
+        # Validaciones
+        if not nombre or not correo or not password:
+            flash("Todos los campos son obligatorios.", "danger")
+            return render_template("registro.html")
+
+        if password != confirm:
+            flash("Las contraseñas no coinciden.", "danger")
+            return render_template("registro.html")
+
+        if len(password) < 8:
+            flash("La contraseña debe tener al menos 8 caracteres.", "danger")
+            return render_template("registro.html")
+
+        conn   = None
+        cursor = None
+        try:
+            conn   = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+
+            # Verificar si el correo ya existe
+            cursor.execute("SELECT id FROM usuarios WHERE correo = %s", (correo,))
+            if cursor.fetchone():
+                flash("Este correo ya está registrado.", "warning")
+                return render_template("registro.html")
+
+            # Insertar usuario con password hasheada
+            hashed = generate_password_hash(password)
+            cursor.execute(
+                "INSERT INTO usuarios (nombre, correo, password, rol) VALUES (%s,%s,%s,'cliente')",
+                (nombre, correo, hashed)
+            )
+            conn.commit()
+
+            flash("¡Cuenta creada exitosamente! Ya puedes iniciar sesión.", "success")
+            return redirect(url_for("login"))
+
+        except mysql.connector.Error as e:
+            flash(f"Error al crear cuenta: {e}", "danger")
+            return render_template("registro.html")
+        finally:
+            if cursor: cursor.close()
+            if conn:   conn.close()
+
+    return render_template("registro.html")
+
+
+# ─────────────────────────────────────────────
+#  RUTA: Logout
+# ─────────────────────────────────────────────
+
+@app.route("/logout")
+def logout():
+    """Cierra la sesión y redirige al login."""
+    session.clear()
+    flash("Sesión cerrada correctamente.", "success")
+    return redirect(url_for("login"))
+
+
 if __name__ == "__main__":
     # DESPUÉS — acepta conexiones desde cualquier dispositivo en la red
     app.run(debug=True, host="0.0.0.0", port=5000)

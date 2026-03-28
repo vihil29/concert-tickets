@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SoundPass — Crear Cuenta</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <style>
+    :root {
+      --gold:#f0a500; --dark:#080810; --card:#0f0f1c;
+      --border:rgba(240,165,0,0.2); --text:#e8e8f0; --muted:#55556a;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      background:var(--dark); color:var(--text);
+      font-family:'DM Sans',sans-serif; min-height:100vh;
+      display:flex; align-items:center; justify-content:center; padding:24px 0;
+    }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0;
+      background:
+        radial-gradient(ellipse 70% 60% at 85% 50%, rgba(240,165,0,0.07) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 15% 30%, rgba(100,60,220,0.07) 0%, transparent 65%);
+    }
+    .wrap { position:relative; z-index:1; width:100%; max-width:440px; padding:20px; }
+
+    .logo-area { text-align:center; margin-bottom:28px; }
+    .logo-icon {
+      width:60px; height:60px; border-radius:18px;
+      background:rgba(240,165,0,0.1); border:1.5px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.6rem; margin:0 auto 12px;
+    }
+    .logo-name { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:3px; color:var(--gold); }
+    .logo-sub  { color:var(--muted); font-size:.78rem; }
+
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:24px; padding:32px;
+      box-shadow:0 24px 80px rgba(0,0,0,0.4);
+    }
+    .card-title { font-family:'Bebas Neue',sans-serif; font-size:1.55rem; letter-spacing:1.5px; margin-bottom:4px; }
+    .card-sub   { color:var(--muted); font-size:.82rem; margin-bottom:26px; }
+
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:6px; }
+    .input-wrap { position:relative; display:flex; align-items:center; }
+    .input-wrap i.icon { position:absolute; left:14px; color:var(--muted); font-size:1rem; pointer-events:none; transition:color .2s; }
+    .input-wrap input {
+      width:100%; padding:12px 14px 12px 42px;
+      background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.07);
+      border-radius:12px; color:var(--text); font-size:.95rem;
+      font-family:'DM Sans',sans-serif; outline:none;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .input-wrap input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(240,165,0,0.1); }
+    .input-wrap input::placeholder { color:#2a2a3a; }
+    .input-wrap input.error { border-color:#ff5566; }
+    .input-wrap input.ok    { border-color:#22d97a; }
+
+    /* Barra de fortaleza de contraseña */
+    .strength-wrap { margin-top:8px; }
+    .strength-bar {
+      height:3px; border-radius:2px; background:#1a1a2a;
+      overflow:hidden; margin-bottom:4px;
+    }
+    .strength-fill { height:100%; border-radius:2px; width:0; transition:width .4s, background .4s; }
+    .strength-text { font-size:.7rem; color:var(--muted); }
+
+    .toggle-pass {
+      position:absolute; right:12px; background:none; border:none;
+      color:var(--muted); cursor:pointer; padding:4px; font-size:1rem;
+      transition:color .2s;
+    }
+    .toggle-pass:hover { color:var(--gold); }
+
+    .field-error { font-size:.72rem; color:#ff5566; margin-top:5px; display:none; }
+    .field-error.show { display:block; }
+
+    .btn-register {
+      width:100%; padding:13px; border:none; border-radius:12px;
+      background:linear-gradient(135deg,var(--gold),#c8870a);
+      color:#000; font-weight:700; font-size:.95rem;
+      font-family:'DM Sans',sans-serif; cursor:pointer;
+      transition:transform .2s, box-shadow .2s, opacity .2s;
+      box-shadow:0 8px 24px rgba(240,165,0,0.25);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      margin-top:8px;
+    }
+    .btn-register:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(240,165,0,0.3); }
+    .btn-register:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+    .divider { display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--muted); font-size:.78rem; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.06); }
+
+    .login-link { text-align:center; font-size:.85rem; color:var(--muted); }
+    .login-link a { color:var(--gold); text-decoration:none; font-weight:600; }
+
+    .alert { border-radius:12px; padding:12px 16px; font-size:.85rem; margin-bottom:18px; border:none; display:flex; align-items:center; gap:10px; }
+    .alert-danger  { background:rgba(220,53,69,0.1); color:#ff6b7a; border:1px solid rgba(220,53,69,0.2); }
+    .alert-warning { background:rgba(255,193,7,0.08); color:#ffc107; border:1px solid rgba(255,193,7,0.2); }
+    .alert-success { background:rgba(34,217,122,0.08); color:#22d97a; border:1px solid rgba(34,217,122,0.2); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo-area">
+      <div class="logo-icon">🎸</div>
+      <div class="logo-name">SoundPass</div>
+      <div class="logo-sub">Crea tu cuenta y asegura tu entrada</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Crear Cuenta</div>
+      <div class="card-sub">Completa los datos para registrarte</div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">
+            <i class="bi bi-{{ 'exclamation-circle' if cat == 'danger' else 'check-circle' if cat == 'success' else 'info-circle' }}"></i>
+            {{ msg }}
+          </div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+
+      <form method="POST" action="/registro" id="form-registro">
+        <div class="field">
+          <label>Nombre completo</label>
+          <div class="input-wrap">
+            <i class="bi bi-person icon"></i>
+            <input type="text" name="nombre" id="inp-nombre"
+                   placeholder="Ej: Juan Pérez" required autocomplete="name"/>
+          </div>
+          <div class="field-error" id="err-nombre">Ingresa tu nombre completo</div>
+        </div>
+
+        <div class="field">
+          <label>Correo electrónico</label>
+          <div class="input-wrap">
+            <i class="bi bi-envelope icon"></i>
+            <input type="email" name="correo" id="inp-correo"
+                   placeholder="tu@correo.com" required autocomplete="email"
+                   oninput="validarCorreo(this)"/>
+          </div>
+          <div class="field-error" id="err-correo">Ingresa un correo válido</div>
+        </div>
+
+        <div class="field">
+          <label>Contraseña</label>
+          <div class="input-wrap">
+            <i class="bi bi-lock icon"></i>
+            <input type="password" name="password" id="inp-pass"
+                   placeholder="Mínimo 8 caracteres" required
+                   oninput="medirFortaleza(this.value)"/>
+            <button type="button" class="toggle-pass" onclick="togglePass('inp-pass','eye1')">
+              <i class="bi bi-eye" id="eye1"></i>
+            </button>
+          </div>
+          <div class="strength-wrap">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <div class="strength-text" id="strength-text">Ingresa una contraseña</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Confirmar contraseña</label>
+          <div class="input-wrap">
+            <i class="bi bi-lock-fill icon"></i>
+            <input type="password" name="confirm" id="inp-confirm"
+                   placeholder="Repite tu contraseña" required
+                   oninput="validarConfirm()"/>
+            <button type="button" class="toggle-pass" onclick="togglePass('inp-confirm','eye2')">
+              <i class="bi bi-eye" id="eye2"></i>
+            </button>
+          </div>
+          <div class="field-error" id="err-confirm">Las contraseñas no coinciden</div>
+        </div>
+
+        <button type="submit" class="btn-register" id="btn-register">
+          <i class="bi bi-person-plus"></i>
+          Crear Cuenta
+        </button>
+      </form>
+
+      <div class="divider">o</div>
+      <div class="login-link">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></div>
+    </div>
+  </div>
+
+  <script>
+  function togglePass(inputId, iconId) {
+    const inp  = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    inp.type   = inp.type === 'password' ? 'text' : 'password';
+    icon.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+  }
+
+  function validarCorreo(input) {
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+    input.className = input.value ? (valid ? 'ok' : 'error') : '';
+    document.getElementById('err-correo').classList.toggle('show', input.value && !valid);
+  }
+
+  function validarConfirm() {
+    const pass    = document.getElementById('inp-pass').value;
+    const confirm = document.getElementById('inp-confirm').value;
+    const match   = pass === confirm;
+    document.getElementById('inp-confirm').className = confirm ? (match ? 'ok' : 'error') : '';
+    document.getElementById('err-confirm').classList.toggle('show', confirm && !match);
+  }
+
+  function medirFortaleza(val) {
+    const fill = document.getElementById('strength-fill');
+    const text = document.getElementById('strength-text');
+    let score  = 0;
+    if (val.length >= 8)        score++;
+    if (/[A-Z]/.test(val))      score++;
+    if (/[0-9]/.test(val))      score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const niveles = [
+      { w:'0%',   color:'#ff5566', label:'Muy débil' },
+      { w:'25%',  color:'#ff5566', label:'Débil' },
+      { w:'50%',  color:'#ffb830', label:'Regular' },
+      { w:'75%',  color:'#4a9eff', label:'Buena' },
+      { w:'100%', color:'#22d97a', label:'Excelente' },
+    ];
+    const n = niveles[score];
+    fill.style.width      = val ? n.w : '0';
+    fill.style.background = n.color;
+    text.textContent      = val ? n.label : 'Ingresa una contraseña';
+    text.style.color      = val ? n.color : 'var(--muted)';
+  }
+  </script>
+</body>
+</html>
