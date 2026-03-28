@@ -83,8 +83,7 @@ def generar_qr_base64(codigo: str) -> str:
     qr.make(fit=True)
 
     # 2. Generar imagen con colores SoundPass (dorado sobre oscuro)
-    img = qr.make_image(fill_color="#f0a500", back_color="#0d0d1a")
-
+    img = qr.make_image(fill_color="#000000", back_color="#ffffff")
     # 3. Guardar imagen en buffer de memoria (sin tocar el disco)
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
@@ -551,7 +550,9 @@ def api_validar():
 @staff_requerido
 def staff():
     """PWA del staff — instalable en Samsung."""
-    return render_template("staff.html")
+    resp = make_response(render_template("staff.html"))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return resp
 
 # ============================================================
 #  AUTENTICACIÓN — Agregar a app.py
@@ -560,7 +561,7 @@ def staff():
 
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import session
+from flask import session, make_response
 
 # ── Asegúrate de que secret_key sea larga y segura en producción ──
 # app.secret_key ya está definida arriba, solo cámbiala por una más segura:

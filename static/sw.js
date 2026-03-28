@@ -1,7 +1,7 @@
 // sw.js — Service Worker de SoundPass Staff PWA
 // Permite que la app funcione offline y se instale en el dispositivo
 
-const CACHE = "soundpass-v1";
+const CACHE = "soundpass-v2";
 const ASSETS = ["/staff", "/static/icons/icon-192.png"];
 
 // Instalar: guarda los assets en caché
