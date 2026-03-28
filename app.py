@@ -88,7 +88,41 @@ def generar_qr_base64(codigo: str) -> str:
     # 4. Convertir a Base64 y retornar como string
     return base64.b64encode(buffer.read()).decode("utf-8")
 
+    
+# ─────────────────────────────────────────────
+#  DECORADORES DE PROTECCIÓN
+# ─────────────────────────────────────────────
 
+def login_requerido(f):
+    """
+    Decorador: redirige al login si el usuario no está autenticado.
+    Uso: @login_requerido encima de cualquier ruta protegida.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("usuario_id"):
+            flash("Debes iniciar sesión para continuar.", "warning")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def staff_requerido(f):
+    """
+    Decorador: solo permite acceso a usuarios con rol staff o admin.
+    Redirige al index con error si el rol no es suficiente.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        rol = session.get("rol")
+        if not session.get("usuario_id"):
+            flash("Debes iniciar sesión.", "warning")
+            return redirect(url_for("login"))
+        if rol not in ("staff", "admin"):
+            flash("No tienes permisos para acceder a esta sección.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated
 # ─────────────────────────────────────────────
 #  FUNCIÓN: Enviar correo HTML Pro con QR
 # ─────────────────────────────────────────────
@@ -528,40 +562,6 @@ from flask import session
 # app.secret_key = os.getenv("SECRET_KEY", "clave_secreta_proyecto")
 
 
-# ─────────────────────────────────────────────
-#  DECORADORES DE PROTECCIÓN
-# ─────────────────────────────────────────────
-
-def login_requerido(f):
-    """
-    Decorador: redirige al login si el usuario no está autenticado.
-    Uso: @login_requerido encima de cualquier ruta protegida.
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get("usuario_id"):
-            flash("Debes iniciar sesión para continuar.", "warning")
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated
-
-
-def staff_requerido(f):
-    """
-    Decorador: solo permite acceso a usuarios con rol staff o admin.
-    Redirige al index con error si el rol no es suficiente.
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        rol = session.get("rol")
-        if not session.get("usuario_id"):
-            flash("Debes iniciar sesión.", "warning")
-            return redirect(url_for("login"))
-        if rol not in ("staff", "admin"):
-            flash("No tienes permisos para acceder a esta sección.", "danger")
-            return redirect(url_for("index"))
-        return f(*args, **kwargs)
-    return decorated
 
 
 # ─────────────────────────────────────────────
