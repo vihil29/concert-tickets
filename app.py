@@ -18,6 +18,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text      import MIMEText
 from email.mime.image     import MIMEImage
 
+from datetime import timedelta
+
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -29,6 +31,9 @@ import mysql.connector
 # ─────────────────────────────────────────────
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "soundpass-secret-2025")
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 DB_CONFIG = {
     "host":     os.getenv("DB_HOST", "localhost"),
@@ -595,6 +600,7 @@ def login():
                 return render_template("login.html")
 
             # Crear sesión
+            session.clear() 
             session.permanent = True
             session["usuario_id"] = usuario["id"]
             session["nombre"]     = usuario["nombre"]
@@ -689,6 +695,7 @@ def registro():
 def logout():
     """Cierra la sesión y redirige al login."""
     session.clear()
+    session.modified = True 
     flash("Sesión cerrada correctamente.", "success")
     return redirect(url_for("login"))
 
