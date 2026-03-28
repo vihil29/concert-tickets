@@ -580,10 +580,9 @@ def login():
     GET  → muestra el formulario de login
     POST → valida credenciales y crea sesión
     """
-    # Si ya está logueado, redirigir según rol
-    if session.get("usuario_id"):
-        return redirect(url_for("staff") if session.get("rol") in ("staff","admin") else url_for("index"))
-
+    
+    # siempre limpia la sesión al entrar al login
+    session.clear()
     if request.method == "POST":
         correo   = request.form.get("correo", "").strip().lower()
         password = request.form.get("password", "")

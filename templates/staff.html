@@ -389,7 +389,19 @@
       <div class="logo">🎸 SoundPass</div>
       <div class="screen-title" id="screen-title">Escáner</div>
     </div>
-    <div class="header-icon"><i class="bi bi-shield-check"></i></div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="font-size:.72rem; color:#555; letter-spacing:.5px;">
+        {{ session.nombre }}
+      </div>
+      <a href="/logout" style="
+        display:flex; align-items:center; gap:6px;
+        background:rgba(255,85,102,0.1); border:1px solid rgba(255,85,102,0.25);
+        color:#ff6b7a; border-radius:8px; padding:6px 12px;
+        font-size:.72rem; letter-spacing:1px; text-transform:uppercase;
+        text-decoration:none; transition:all .2s;">
+        <i class="bi bi-box-arrow-right"></i>Salir
+      </a>
+    </div>
   </div>
 
   <!-- PANTALLAS -->
