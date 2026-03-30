@@ -1,18 +1,12 @@
-// sw.js — Service Worker de SoundPass Staff PWA
-// Permite que la app funcione offline y se instale en el dispositivo
+// sw.js — Service Worker SoundPass Staff PWA v3
+const CACHE = "soundpass-v3";
+const ASSETS = ["/staff/", "/static/icons/icon-192.png"];
 
-const CACHE = "soundpass-v2";
-const ASSETS = ["/staff", "/static/icons/icon-192.png"];
-
-// Instalar: guarda los assets en caché
 self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
-// Activar: limpia cachés viejas
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -22,18 +16,14 @@ self.addEventListener("activate", e => {
   self.clients.claim();
 });
 
-// Fetch: red primero, caché como respaldo
 self.addEventListener("fetch", e => {
-  // Las llamadas a la API siempre van a la red
-  if (e.request.url.includes("/api/")) return;
-
+  // Las llamadas API siempre van a la red
+  if (e.request.url.includes("/staff/api/") || e.request.url.includes("/auth/")) return;
   e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return res;
-      })
-      .catch(() => caches.match(e.request))
+    fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
