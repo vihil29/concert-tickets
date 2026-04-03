@@ -4,6 +4,21 @@ from extensions import get_db
 import mysql.connector
 from . import public_bp
 
+def format_hora(hora):
+    """
+    MySQL devuelve TIME como timedelta en Python.
+    Esta función lo convierte a string 'HH:MM' seguro.
+    """
+    if hora is None:
+        return ''
+    if hasattr(hora, 'strftime'):
+        # Ya es un objeto time normal
+        return hora.strftime('%H:%M')
+    # Es un timedelta — convertir manualmente
+    total_segundos = int(hora.total_seconds())
+    horas   = total_segundos // 3600
+    minutos = (total_segundos % 3600) // 60
+    return f"{horas:02d}:{minutos:02d}"
 
 @public_bp.route("/")
 def index():
@@ -55,6 +70,11 @@ def index():
                     "eventos": []
                 }
             eventos_por_cat[slug]["eventos"].append(e)
+        # Convertir hora de timedelta a string para cada evento
+        for e in eventos:
+            e['hora_str'] = format_hora(e.get('hora'))
+            if e.get('fecha'):
+                e['fecha_str'] = e['fecha'].strftime('%d %b %Y')
 
         return render_template("public/index.html",
             categorias       = categorias,
@@ -104,6 +124,10 @@ def evento(evento_id):
             ORDER BY zev.precio DESC
         """, (evento_id,))
         zonas = cursor.fetchall()
+
+        evento['hora_str'] = format_hora(evento.get('hora'))
+        if evento.get('fecha'):
+            evento['fecha_str'] = evento['fecha'].strftime('%A, %d de %B de %Y')
 
         return render_template("public/evento.html",
             evento = evento,

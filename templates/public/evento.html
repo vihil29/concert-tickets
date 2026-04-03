@@ -179,11 +179,11 @@
       <div class="evento-metas">
         <div class="evento-meta-item">
           <i class="bi bi-calendar3" style="color:var(--gold)"></i>
-          {{ evento.fecha.strftime('%A, %d de %B de %Y') if evento.fecha else '—' }}
+          {{ evento.fecha_str if evento.fecha_str is defined else '—' }}
         </div>
         <div class="evento-meta-item">
           <i class="bi bi-clock" style="color:var(--gold)"></i>
-          {{ evento.hora.strftime('%H:%M') if evento.hora else '—' }} hrs
+          {{ evento.hora_str }} hrs
         </div>
         <div class="evento-meta-item">
           <i class="bi bi-geo-alt" style="color:var(--gold)"></i>

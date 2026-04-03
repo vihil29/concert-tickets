@@ -151,8 +151,8 @@
               <div class="evento-nombre">{{ evento.nombre }}</div>
               <div class="evento-meta">
                 <span><i class="bi bi-calendar3"></i>
-                  {{ evento.fecha.strftime('%d %b %Y') if evento.fecha else '—' }}
-                  · {{ evento.hora.strftime('%H:%M') if evento.hora else '' }}
+                  {{ evento.fecha_str if evento.fecha_str is defined else '—' }}
+                  · {{ evento.hora_str }}
                 </span>
                 <span><i class="bi bi-geo-alt"></i>{{ evento.lugar }}</span>
                 {% if evento.capacidad_total %}
