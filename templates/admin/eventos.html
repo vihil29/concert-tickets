@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Eventos — Admin SoundPass{% endblock %}
+
+{% block extra_styles %}
+  .admin-layout{ display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 60px); }
+  .admin-sidebar{ background:var(--card); border-right:1px solid var(--border); padding:24px 0; position:sticky; top:60px; height:calc(100vh - 60px); overflow-y:auto; }
+  .sidebar-title{ font-size:.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); padding:0 20px; margin-bottom:10px; }
+  .sidebar-link{ display:flex; align-items:center; gap:10px; padding:11px 20px; color:var(--muted); text-decoration:none; font-size:.88rem; transition:all .2s; border-left:3px solid transparent; }
+  .sidebar-link:hover{ color:var(--text); background:rgba(255,255,255,0.03); }
+  .sidebar-link.active{ color:var(--gold); border-left-color:var(--gold); background:rgba(240,165,0,0.05); }
+  .sidebar-link i{ font-size:1rem; width:18px; text-align:center; }
+  .admin-main{ padding:32px; }
+  .admin-title{ font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:1.5px; margin-bottom:4px; }
+  .admin-sub{ color:var(--muted); font-size:.82rem; margin-bottom:28px; }
+
+  .btn-crear{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 20px; border-radius:10px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--gold-dk));
+    color:#000; font-weight:700; font-size:.88rem;
+    text-decoration:none; transition:all .2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .btn-crear:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(240,165,0,0.25); color:#000; }
+
+  .table-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-top:20px; }
+  .sp-table{ width:100%; border-collapse:collapse; }
+  .sp-table th{ padding:12px 16px; font-size:.7rem; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; text-align:left; }
+  .sp-table td{ padding:12px 16px; font-size:.88rem; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+  .sp-table tr:last-child td{ border-bottom:none; }
+  .sp-table tr:hover td{ background:rgba(255,255,255,0.02); }
+
+  .evento-nombre-cell{ font-weight:600; }
+  .evento-cat-badge{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; padding:2px 10px; border-radius:6px; border:1px solid transparent; }
+
+  .badge-estado{ padding:3px 10px; border-radius:6px; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+  .badge-proximo  { background:rgba(34,217,122,0.1); color:var(--green); }
+  .badge-en_curso { background:rgba(240,165,0,0.1); color:var(--gold); }
+  .badge-finalizado{ background:rgba(255,255,255,0.06); color:var(--muted); }
+  .badge-cancelado{ background:rgba(255,85,102,0.1); color:var(--red); }
+  .badge-agotado  { background:rgba(255,184,48,0.1); color:#ffb830; }
+
+  .btn-sm{
+    padding:5px 12px; border-radius:7px; font-size:.72rem; border:none;
+    cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600;
+    text-decoration:none; display:inline-flex; align-items:center; gap:5px;
+    transition:all .15s;
+  }
+  .btn-sm-danger{ background:rgba(255,85,102,0.1); color:var(--red); border:1px solid rgba(255,85,102,0.2); }
+  .btn-sm-danger:hover{ background:rgba(255,85,102,0.2); }
+  .btn-sm-gold{ background:rgba(240,165,0,0.1); color:var(--gold); border:1px solid rgba(240,165,0,0.2); }
+  .btn-sm-gold:hover{ background:rgba(240,165,0,0.2); }
+
+  .prog-bar{ height:5px; background:#1a1a2a; border-radius:3px; overflow:hidden; min-width:80px; }
+  .prog-fill{ height:100%; border-radius:3px; }
+
+  select.estado-select{
+    background:var(--card); border:1px solid #1e1e2e; color:var(--text);
+    border-radius:7px; padding:4px 8px; font-size:.75rem; cursor:pointer;
+    font-family:'DM Sans',sans-serif; outline:none;
+  }
+  @media(max-width:768px){ .admin-layout{ grid-template-columns:1fr; } .admin-sidebar{ display:none; } }
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="sidebar-title">Panel Admin</div>
+    <a href="/admin/"           class="sidebar-link"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    <a href="/admin/eventos"    class="sidebar-link active"><i class="bi bi-calendar-event"></i>Eventos</a>
+    <a href="/admin/categorias" class="sidebar-link"><i class="bi bi-tags"></i>Categorías</a>
+    <a href="/admin/usuarios"   class="sidebar-link"><i class="bi bi-people"></i>Usuarios</a>
+    <div class="sidebar-title" style="margin-top:20px">Accesos</div>
+    <a href="/"            class="sidebar-link"><i class="bi bi-shop"></i>Ver tienda</a>
+    <a href="/staff/"      class="sidebar-link"><i class="bi bi-shield-lock"></i>Panel Staff</a>
+    <a href="/auth/logout" class="sidebar-link" style="color:#ff6b7a;"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a>
+  </aside>
+
+  <main class="admin-main">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <div>
+        <div class="admin-title">Eventos</div>
+        <div class="admin-sub">Gestiona todos los eventos de la plataforma</div>
+      </div>
+      <a href="/admin/eventos/crear" class="btn-crear">
+        <i class="bi bi-plus-lg"></i>Nuevo Evento
+      </a>
+    </div>
+
+    <div class="table-card">
+      <table class="sp-table">
+        <thead>
+          <tr>
+            <th>Evento</th>
+            <th>Categoría</th>
+            <th>Fecha</th>
+            <th>Lugar</th>
+            <th>Ventas</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in eventos %}
+          <tr>
+            <td>
+              <div class="evento-nombre-cell">{{ ev.nombre }}</div>
+            </td>
+            <td>
+              <span class="evento-cat-badge"
+                    style="background:{{ ev.cat_color }}22;color:{{ ev.cat_color }};border-color:{{ ev.cat_color }}44;">
+                {{ ev.cat_icono }} {{ ev.cat_nombre }}
+              </span>
+            </td>
+            <td style="color:var(--muted);font-size:.8rem;">
+              {{ ev.fecha.strftime('%d/%m/%Y') if ev.fecha else '—' }}<br>
+              <span style="font-size:.72rem;">{{ ev.hora.strftime('%H:%M') if ev.hora else '' }}</span>
+            </td>
+            <td style="color:var(--muted);font-size:.82rem;">{{ ev.lugar }}</td>
+            <td>
+              {% if ev.capacidad %}
+                {% set pct = ((ev.vendidos or 0) / ev.capacidad * 100)|int %}
+                <div style="font-size:.78rem;margin-bottom:4px;">{{ ev.vendidos or 0 }}/{{ ev.capacidad }}</div>
+                <div class="prog-bar">
+                  <div class="prog-fill" style="width:{{ pct }}%;background:{{ 'var(--red)' if pct > 90 else 'var(--gold)' if pct > 60 else 'var(--green)' }};"></div>
+                </div>
+              {% else %}
+                <span style="color:var(--muted)">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <!-- Selector de estado -->
+              <form action="/admin/eventos/{{ ev.id }}/estado" method="POST" style="display:inline">
+                <select name="estado" class="estado-select" onchange="this.form.submit()">
+                  {% for est in ['proximo','en_curso','finalizado','cancelado','agotado'] %}
+                    <option value="{{ est }}" {{ 'selected' if ev.estado == est else '' }}>
+                      {{ est.replace('_',' ').title() }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </form>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <a href="/evento/{{ ev.id }}" class="btn-sm btn-sm-gold" target="_blank">
+                  <i class="bi bi-eye"></i>Ver
+                </a>
+                <form action="/admin/eventos/{{ ev.id }}/eliminar" method="POST"
+                      onsubmit="return confirm('¿Eliminar este evento? Esta acción no se puede deshacer.')">
+                  <button type="submit" class="btn-sm btn-sm-danger">
+                    <i class="bi bi-trash"></i>Borrar
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;color:var(--muted);padding:48px;">
+              No hay eventos. <a href="/admin/eventos/crear" style="color:var(--gold)">Crear el primero</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+{% endblock %}

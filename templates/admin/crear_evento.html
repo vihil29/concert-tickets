@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Crear Evento — Admin SoundPass{% endblock %}
+
+{% block extra_styles %}
+  .admin-layout{ display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 60px); }
+  .admin-sidebar{ background:var(--card); border-right:1px solid var(--border); padding:24px 0; position:sticky; top:60px; height:calc(100vh - 60px); overflow-y:auto; }
+  .sidebar-title{ font-size:.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); padding:0 20px; margin-bottom:10px; }
+  .sidebar-link{ display:flex; align-items:center; gap:10px; padding:11px 20px; color:var(--muted); text-decoration:none; font-size:.88rem; transition:all .2s; border-left:3px solid transparent; }
+  .sidebar-link:hover{ color:var(--text); background:rgba(255,255,255,0.03); }
+  .sidebar-link.active{ color:var(--gold); border-left-color:var(--gold); background:rgba(240,165,0,0.05); }
+  .sidebar-link i{ font-size:1rem; width:18px; text-align:center; }
+  .admin-main{ padding:32px; max-width:800px; }
+  .admin-title{ font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:1.5px; margin-bottom:4px; }
+  .admin-sub{ color:var(--muted); font-size:.82rem; margin-bottom:28px; }
+
+  .form-section{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:18px; padding:28px; margin-bottom:20px;
+  }
+  .section-label{
+    font-family:'Bebas Neue',sans-serif; font-size:1.1rem;
+    letter-spacing:1.5px; margin-bottom:20px; color:var(--text);
+    display:flex; align-items:center; gap:8px;
+  }
+
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+  .form-grid.full{ grid-template-columns:1fr; }
+
+  .form-field{ margin-bottom:0; }
+  .form-field label{ display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:6px; }
+  .sp-input, .sp-select, .sp-textarea{
+    width:100%; padding:11px 15px;
+    background:rgba(255,255,255,0.04); border:1px solid #1e1e2e;
+    color:var(--text); border-radius:10px; font-family:'DM Sans',sans-serif;
+    font-size:.92rem; outline:none; transition:border-color .2s, box-shadow .2s;
+  }
+  .sp-input:focus, .sp-select:focus, .sp-textarea:focus{
+    border-color:var(--gold); box-shadow:0 0 0 3px rgba(240,165,0,0.1);
+  }
+  .sp-input::placeholder, .sp-textarea::placeholder{ color:#2a2a3a; }
+  .sp-select option{ background:#1a1a2e; }
+  .sp-textarea{ resize:vertical; min-height:90px; }
+
+  /* Zonas builder */
+  .zona-row{
+    display:grid; grid-template-columns:2fr 1fr 1fr 80px 32px;
+    gap:10px; align-items:center; margin-bottom:10px;
+    background:rgba(255,255,255,0.02); border:1px solid #1a1a28;
+    border-radius:10px; padding:12px 14px;
+  }
+  .zona-row:hover{ border-color:rgba(255,255,255,0.08); }
+  .btn-add-zona{
+    display:flex; align-items:center; gap:8px; padding:10px 18px;
+    background:rgba(240,165,0,0.08); border:1px dashed rgba(240,165,0,0.3);
+    color:var(--gold); border-radius:10px; cursor:pointer; font-size:.85rem;
+    font-family:'DM Sans',sans-serif; transition:all .2s; width:100%; justify-content:center;
+  }
+  .btn-add-zona:hover{ background:rgba(240,165,0,0.14); }
+  .btn-remove-zona{
+    width:32px; height:32px; border-radius:8px; border:1px solid rgba(255,85,102,0.2);
+    background:rgba(255,85,102,0.08); color:var(--red); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:.9rem;
+    transition:all .15s; flex-shrink:0;
+  }
+  .btn-remove-zona:hover{ background:rgba(255,85,102,0.18); }
+
+  .input-color{ width:38px; height:38px; border-radius:8px; border:1px solid #1e1e2e; padding:2px; cursor:pointer; background:transparent; }
+
+  /* Submit */
+  .btn-submit{
+    padding:14px 32px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--gold-dk));
+    color:#000; font-weight:700; font-size:.95rem;
+    font-family:'DM Sans',sans-serif; transition:all .2s;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-submit:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(240,165,0,0.25); }
+  .btn-cancel{
+    padding:14px 24px; border:1px solid #1e1e2e; border-radius:12px; cursor:pointer;
+    background:transparent; color:var(--muted); font-size:.92rem;
+    font-family:'DM Sans',sans-serif; text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    transition:all .2s;
+  }
+  .btn-cancel:hover{ border-color:rgba(255,255,255,0.15); color:var(--text); }
+
+  /* Upload de imagen */
+  .upload-area{
+    border:2px dashed #1e1e2e; border-radius:12px; padding:24px;
+    text-align:center; cursor:pointer; transition:all .2s;
+  }
+  .upload-area:hover{ border-color:rgba(240,165,0,0.3); background:rgba(240,165,0,0.03); }
+  .upload-area input[type=file]{ display:none; }
+  .upload-preview{ max-width:200px; border-radius:10px; margin-top:12px; }
+
+  @media(max-width:768px){ .admin-layout{ grid-template-columns:1fr; } .admin-sidebar{ display:none; } }
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="sidebar-title">Panel Admin</div>
+    <a href="/admin/"           class="sidebar-link"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    <a href="/admin/eventos"    class="sidebar-link active"><i class="bi bi-calendar-event"></i>Eventos</a>
+    <a href="/admin/categorias" class="sidebar-link"><i class="bi bi-tags"></i>Categorías</a>
+    <a href="/admin/usuarios"   class="sidebar-link"><i class="bi bi-people"></i>Usuarios</a>
+    <div class="sidebar-title" style="margin-top:20px">Accesos</div>
+    <a href="/"            class="sidebar-link"><i class="bi bi-shop"></i>Ver tienda</a>
+    <a href="/staff/"      class="sidebar-link"><i class="bi bi-shield-lock"></i>Panel Staff</a>
+    <a href="/auth/logout" class="sidebar-link" style="color:#ff6b7a;"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-title">Crear Evento</div>
+    <div class="admin-sub">Completa los detalles del nuevo evento</div>
+
+    <form action="/admin/eventos/crear" method="POST" enctype="multipart/form-data">
+
+      <!-- ── INFO GENERAL ── -->
+      <div class="form-section">
+        <div class="section-label"><i class="bi bi-info-circle" style="color:var(--gold)"></i>Información General</div>
+        <div class="form-grid full" style="margin-bottom:16px;">
+          <div class="form-field">
+            <label>Nombre del evento *</label>
+            <input type="text" name="nombre" class="sp-input"
+                   placeholder="Ej: Bad Bunny World Tour, Barcelona vs Real Madrid" required/>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div class="form-field">
+            <label>Categoría *</label>
+            <select name="categoria_id" class="sp-select" required>
+              <option value="">— Selecciona —</option>
+              {% for cat in categorias %}
+                <option value="{{ cat.id }}">{{ cat.icono }} {{ cat.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Lugar / Estadio *</label>
+            <input type="text" name="lugar" class="sp-input"
+                   placeholder="Ej: Estadio Nacional, Camp Nou" required/>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div class="form-field">
+            <label>Fecha *</label>
+            <input type="date" name="fecha" class="sp-input" required/>
+          </div>
+          <div class="form-field">
+            <label>Hora *</label>
+            <input type="time" name="hora" class="sp-input" required/>
+          </div>
+        </div>
+        <div class="form-grid full">
+          <div class="form-field">
+            <label>Descripción</label>
+            <textarea name="descripcion" class="sp-textarea"
+                      placeholder="Describe el evento..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── IMAGEN ── -->
+      <div class="form-section">
+        <div class="section-label"><i class="bi bi-image" style="color:var(--gold)"></i>Imagen del Evento</div>
+        <div class="upload-area" onclick="document.getElementById('imagen-input').click()">
+          <input type="file" name="imagen" id="imagen-input" accept="image/*" onchange="previewImage(this)"/>
+          <i class="bi bi-cloud-upload" style="font-size:2rem;color:var(--muted);display:block;margin-bottom:8px;"></i>
+          <p style="color:var(--muted);font-size:.85rem;margin:0;">Clic para subir imagen del evento</p>
+          <p style="color:#2a2a3a;font-size:.75rem;margin:4px 0 0;">PNG, JPG, WEBP · Máx 5MB</p>
+          <img id="imagen-preview" class="upload-preview" style="display:none;"/>
+        </div>
+      </div>
+
+      <!-- ── ZONAS DE PRECIO ── -->
+      <div class="form-section">
+        <div class="section-label">
+          <i class="bi bi-map" style="color:var(--gold)"></i>Zonas y Precios
+          <span style="font-size:.72rem;font-family:'DM Sans';font-weight:400;color:var(--muted);margin-left:8px;">
+            Las zonas aparecerán en el mapa del recinto
+          </span>
+        </div>
+
+        <!-- Headers -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 80px 32px;gap:10px;padding:0 14px;margin-bottom:6px;">
+          <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">Nombre zona</span>
+          <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">Precio $</span>
+          <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">Capacidad</span>
+          <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">Color</span>
+          <span></span>
+        </div>
+
+        <div id="zonas-container">
+          <!-- Zona inicial -->
+          <div class="zona-row">
+            <input type="text" name="zona_nombre[]" class="sp-input" placeholder="Ej: Platea VIP" required/>
+            <input type="number" name="zona_precio[]" class="sp-input" placeholder="150" min="0" step="0.01" required/>
+            <input type="number" name="zona_capacidad[]" class="sp-input" placeholder="200" min="1" required/>
+            <input type="color" name="zona_color[]" class="input-color" value="#f0a500"/>
+            <button type="button" class="btn-remove-zona" onclick="removeZona(this)"><i class="bi bi-x"></i></button>
+          </div>
+        </div>
+
+        <button type="button" class="btn-add-zona" onclick="addZona()">
+          <i class="bi bi-plus-lg"></i>Agregar zona
+        </button>
+
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(74,158,255,0.05);
+                    border:1px solid rgba(74,158,255,0.15);border-radius:10px;font-size:.78rem;color:#4a9eff;">
+          <i class="bi bi-info-circle me-1"></i>
+          Las zonas se asignan al mapa en el orden en que las creas (de más cara a más barata).
+          El sistema las mapea automáticamente a las secciones del mapa según la categoría del evento.
+        </div>
+      </div>
+
+      <!-- ── BOTONES ── -->
+      <div style="display:flex;gap:12px;">
+        <button type="submit" class="btn-submit">
+          <i class="bi bi-check-lg"></i>Crear Evento
+        </button>
+        <a href="/admin/eventos" class="btn-cancel">
+          <i class="bi bi-x-lg"></i>Cancelar
+        </a>
+      </div>
+
+    </form>
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Agregar zona ──
+function addZona() {
+  const container = document.getElementById('zonas-container');
+  const colors = ['#4a9eff','#22d97a','#a855f7','#f43f5e','#22d3ee','#ffb830','#94a3b8'];
+  const idx = container.children.length;
+  const color = colors[idx % colors.length];
+
+  const div = document.createElement('div');
+  div.className = 'zona-row';
+  div.innerHTML = `
+    <input type="text"   name="zona_nombre[]"    class="sp-input" placeholder="Nombre de zona" required/>
+    <input type="number" name="zona_precio[]"    class="sp-input" placeholder="Precio" min="0" step="0.01" required/>
+    <input type="number" name="zona_capacidad[]" class="sp-input" placeholder="Capacidad" min="1" required/>
+    <input type="color"  name="zona_color[]"     class="input-color" value="${color}"/>
+    <button type="button" class="btn-remove-zona" onclick="removeZona(this)"><i class="bi bi-x"></i></button>
+  `;
+  container.appendChild(div);
+}
+
+// ── Eliminar zona ──
+function removeZona(btn) {
+  const rows = document.querySelectorAll('.zona-row');
+  if (rows.length <= 1) { alert('Debe haber al menos una zona.'); return; }
+  btn.closest('.zona-row').remove();
+}
+
+// ── Preview imagen ──
+function previewImage(input) {
+  const preview = document.getElementById('imagen-preview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

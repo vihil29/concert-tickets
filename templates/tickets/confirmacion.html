@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Ticket Confirmado — SoundPass{% endblock %}
+
+{% block extra_styles %}
+  .confirm-wrap{ max-width:460px; margin:40px auto; padding:0 16px 60px; }
+  .email-notice{
+    background:rgba(240,165,0,0.05); border:1px solid rgba(240,165,0,0.15);
+    border-radius:12px; padding:12px 16px; margin-bottom:16px;
+    display:flex; align-items:center; gap:10px; font-size:.82rem; color:#888;
+  }
+  .email-notice i{ color:var(--gold); flex-shrink:0; }
+
+  .ticket{
+    background:var(--card); border-radius:24px; border:1px solid var(--border);
+    overflow:hidden; box-shadow:0 20px 80px rgba(0,0,0,0.5), 0 0 40px rgba(240,165,0,0.06);
+    animation:slideUp .5s ease both;
+  }
+  @keyframes slideUp{ from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+
+  .t-header{
+    background:linear-gradient(135deg,#1a1a2e,#0d0d1a);
+    padding:32px 28px 24px; text-align:center;
+    border-bottom:2px dashed rgba(255,255,255,0.06); position:relative;
+  }
+  .t-header::before,.t-header::after{
+    content:''; position:absolute; bottom:-14px;
+    width:28px; height:28px; border-radius:50%; background:var(--dark);
+  }
+  .t-header::before{ left:-14px; }
+  .t-header::after { right:-14px; }
+
+  .success-ring{
+    width:68px; height:68px; border-radius:50%;
+    background:rgba(240,165,0,0.1); border:2px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.8rem; margin:0 auto 18px;
+    animation:pulse 2s ease infinite;
+  }
+  @keyframes pulse{ 0%,100%{box-shadow:0 0 0 0 rgba(240,165,0,0.3)} 50%{box-shadow:0 0 0 14px rgba(240,165,0,0)} }
+  .t-title{ font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--gold); letter-spacing:2px; }
+  .t-sub  { color:#444; font-size:.82rem; margin-top:4px; }
+
+  .t-body{ padding:28px; }
+  .info-row{ display:flex; justify-content:space-between; align-items:flex-start; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:.88rem; }
+  .info-row:last-of-type{ border-bottom:none; }
+  .ir-label{ color:#555; font-size:.72rem; text-transform:uppercase; letter-spacing:1px; }
+  .ir-value{ color:#ddd; font-weight:500; text-align:right; max-width:60%; }
+  .zona-pill{ padding:3px 12px; border-radius:20px; font-size:.8rem; font-weight:700; background:rgba(240,165,0,0.12); color:var(--gold); border:1px solid var(--border); }
+
+  .qr-section{ margin:22px 0 0; background:rgba(0,0,0,0.3); border:2px dashed rgba(240,165,0,0.25); border-radius:16px; padding:22px; text-align:center; }
+  .qr-label  { font-size:.68rem; letter-spacing:2px; text-transform:uppercase; color:#444; margin-bottom:14px; }
+  .qr-img    { width:160px; height:160px; border-radius:10px; display:block; margin:0 auto; }
+  .qr-code-text{ font-size:.72rem; color:#2a2a3a; font-family:'Courier New',monospace; word-break:break-all; margin-top:12px; }
+
+  .t-footer{ padding:16px 28px; background:rgba(0,0,0,0.2); border-top:1px solid rgba(255,255,255,0.04); text-align:center; }
+  .t-footer p{ color:#333; font-size:.75rem; margin:0; }
+
+  .btn-back{
+    display:block; width:100%; text-align:center; padding:13px; margin-top:18px;
+    background:transparent; border:1px solid rgba(240,165,0,0.2); color:var(--gold);
+    border-radius:12px; text-decoration:none; font-size:.85rem;
+    letter-spacing:1px; text-transform:uppercase; transition:all .2s;
+  }
+  .btn-back:hover{ background:rgba(240,165,0,0.07); color:var(--gold); transform:translateY(-2px); }
+{% endblock %}
+
+{% block content %}
+<div class="confirm-wrap">
+  <div class="email-notice">
+    <i class="bi bi-envelope-check fs-5"></i>
+    <span>Tu ticket fue enviado a <strong style="color:var(--gold)">{{ correo }}</strong></span>
+  </div>
+
+  <div class="ticket">
+    <div class="t-header">
+      <div class="success-ring">🎟️</div>
+      <div class="t-title">¡Ticket Confirmado!</div>
+      <div class="t-sub">{{ evento }} · Entrada válida para una persona</div>
+    </div>
+
+    <div class="t-body">
+      <div class="info-row">
+        <span class="ir-label">Evento</span>
+        <span class="ir-value">{{ evento }}</span>
+      </div>
+      <div class="info-row">
+        <span class="ir-label">Nombre</span>
+        <span class="ir-value">{{ nombre }}</span>
+      </div>
+      <div class="info-row">
+        <span class="ir-label">Correo</span>
+        <span class="ir-value" style="font-size:.78rem;">{{ correo }}</span>
+      </div>
+      <div class="info-row">
+        <span class="ir-label">Zona</span>
+        <span class="ir-value"><span class="zona-pill">{{ zona }}</span></span>
+      </div>
+      <div class="info-row">
+        <span class="ir-label">Precio</span>
+        <span class="ir-value" style="color:var(--gold);font-family:'Bebas Neue';font-size:1.1rem">${{ precio }}</span>
+      </div>
+
+      <div class="qr-section">
+        <div class="qr-label"><i class="bi bi-qr-code me-1"></i>Tu código QR de acceso</div>
+        <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Ticket" class="qr-img"/>
+        <div class="qr-code-text">{{ codigo }}</div>
+      </div>
+    </div>
+
+    <div class="t-footer">
+      <p><i class="bi bi-shield-check me-1" style="color:var(--gold)"></i>
+        Presenta el QR en la entrada · Un solo uso · No compartas
+      </p>
+    </div>
+  </div>
+
+  <a href="/" class="btn-back"><i class="bi bi-arrow-left me-2"></i>Ver más eventos</a>
+</div>
+{% endblock %}

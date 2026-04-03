@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — SoundPass{% endblock %}
+
+{% block extra_styles %}
+  .admin-layout{ display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 60px); }
+  .admin-sidebar{
+    background:var(--card); border-right:1px solid var(--border);
+    padding:24px 0; position:sticky; top:60px; height:calc(100vh - 60px);
+    overflow-y:auto;
+  }
+  .sidebar-title{ font-size:.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); padding:0 20px; margin-bottom:10px; }
+  .sidebar-link{
+    display:flex; align-items:center; gap:10px; padding:11px 20px;
+    color:var(--muted); text-decoration:none; font-size:.88rem;
+    transition:all .2s; border-left:3px solid transparent;
+  }
+  .sidebar-link:hover{ color:var(--text); background:rgba(255,255,255,0.03); }
+  .sidebar-link.active{ color:var(--gold); border-left-color:var(--gold); background:rgba(240,165,0,0.05); }
+  .sidebar-link i{ font-size:1rem; width:18px; text-align:center; }
+
+  .admin-main{ padding:32px; }
+  .admin-title{ font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:1.5px; margin-bottom:4px; }
+  .admin-sub{ color:var(--muted); font-size:.82rem; margin-bottom:28px; }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:32px; }
+  .kpi-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; }
+  .kpi-icon{ width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; margin-bottom:12px; }
+  .kpi-num{ font-family:'Bebas Neue',sans-serif; font-size:2.2rem; line-height:1; margin-bottom:4px; }
+  .kpi-label{ color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.8px; }
+
+  .section-title{ font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:1px; margin-bottom:16px; color:var(--text); }
+
+  .table-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .sp-table{ width:100%; border-collapse:collapse; }
+  .sp-table th{ padding:12px 16px; font-size:.7rem; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; text-align:left; }
+  .sp-table td{ padding:12px 16px; font-size:.88rem; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .sp-table tr:last-child td{ border-bottom:none; }
+  .sp-table tr:hover td{ background:rgba(255,255,255,0.02); }
+
+  .badge-estado{
+    padding:3px 10px; border-radius:6px; font-size:.68rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+  }
+  .badge-activo   { background:rgba(34,217,122,0.1); color:var(--green); }
+  .badge-ingresado{ background:rgba(255,184,48,0.1); color:#ffb830; }
+  .badge-cancelado{ background:rgba(255,85,102,0.1); color:var(--red); }
+
+  @media(max-width:768px){ .admin-layout{ grid-template-columns:1fr; } .admin-sidebar{ display:none; } }
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-title">Panel Admin</div>
+    <a href="/admin/"           class="sidebar-link active"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    <a href="/admin/eventos"    class="sidebar-link"><i class="bi bi-calendar-event"></i>Eventos</a>
+    <a href="/admin/categorias" class="sidebar-link"><i class="bi bi-tags"></i>Categorías</a>
+    <a href="/admin/usuarios"   class="sidebar-link"><i class="bi bi-people"></i>Usuarios</a>
+    <div class="sidebar-title" style="margin-top:20px">Accesos</div>
+    <a href="/"           class="sidebar-link"><i class="bi bi-shop"></i>Ver tienda</a>
+    <a href="/staff/"     class="sidebar-link"><i class="bi bi-shield-lock"></i>Panel Staff</a>
+    <a href="/auth/logout" class="sidebar-link" style="color:#ff6b7a;"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main">
+    <div class="admin-title">Dashboard</div>
+    <div class="admin-sub">Bienvenido al panel de administración de SoundPass</div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(240,165,0,0.12);color:var(--gold)"><i class="bi bi-calendar-check"></i></div>
+        <div class="kpi-num" style="color:var(--gold)">{{ eventos_proximos or 0 }}</div>
+        <div class="kpi-label">Eventos próximos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(74,158,255,0.12);color:var(--blue)"><i class="bi bi-ticket-perforated"></i></div>
+        <div class="kpi-num" style="color:var(--blue)">{{ tickets_activos or 0 }}</div>
+        <div class="kpi-label">Tickets activos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(34,217,122,0.12);color:var(--green)"><i class="bi bi-check-circle"></i></div>
+        <div class="kpi-num" style="color:var(--green)">{{ tickets_ingresados or 0 }}</div>
+        <div class="kpi-label">Ingresados</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(168,85,247,0.12);color:#a855f7"><i class="bi bi-people"></i></div>
+        <div class="kpi-num" style="color:#a855f7">{{ total_clientes or 0 }}</div>
+        <div class="kpi-label">Clientes</div>
+      </div>
+    </div>
+
+    <!-- Últimos tickets -->
+    <div class="section-title">Últimas Compras</div>
+    <div class="table-card">
+      <table class="sp-table">
+        <thead>
+          <tr>
+            <th>Comprador</th>
+            <th>Evento</th>
+            <th>Zona</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in ultimos_tickets %}
+          <tr>
+            <td>
+              <div style="font-weight:600">{{ t.nombre }}</div>
+              <div style="color:var(--muted);font-size:.75rem">{{ t.correo }}</div>
+            </td>
+            <td>{{ t.evento }}</td>
+            <td>{{ t.zona }}</td>
+            <td style="color:var(--muted);font-size:.78rem">{{ t.fecha_compra }}</td>
+            <td><span class="badge-estado badge-{{ t.estado }}">{{ t.estado }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">Sin compras aún</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+</div>
+{% endblock %}

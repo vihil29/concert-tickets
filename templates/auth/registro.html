@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Crear Cuenta — SoundPass{% endblock %}
+{% block extra_styles %}
+  body{ display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px 0; }
+  .wrap{ position:relative; z-index:1; width:100%; max-width:440px; padding:20px; }
+  .logo-area{ text-align:center; margin-bottom:22px; }
+  .logo-icon{ width:58px; height:58px; border-radius:16px; background:rgba(240,165,0,0.1); border:1.5px solid rgba(240,165,0,0.2); display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin:0 auto 10px; }
+  .logo-name{ font-family:'Bebas Neue',sans-serif; font-size:1.7rem; letter-spacing:3px; color:var(--gold); }
+  .card{ background:var(--card); border:1px solid rgba(240,165,0,0.15); border-radius:22px; padding:30px; box-shadow:0 24px 80px rgba(0,0,0,0.4); }
+  .card-title{ font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:1px; margin-bottom:4px; }
+  .card-sub  { color:var(--muted); font-size:.8rem; margin-bottom:22px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:6px; }
+  .inp-wrap{ position:relative; display:flex; align-items:center; }
+  .inp-wrap i.icon{ position:absolute; left:14px; color:var(--muted); font-size:1rem; pointer-events:none; }
+  .inp-wrap input{ width:100%; padding:11px 14px 11px 42px; background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.07); border-radius:12px; color:var(--text); font-size:.92rem; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s,box-shadow .2s; }
+  .inp-wrap input:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(240,165,0,0.1); }
+  .inp-wrap input::placeholder{ color:#2a2a3a; }
+  .toggle-pass{ position:absolute; right:12px; background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; font-size:1rem; }
+  .strength-bar{ height:3px; background:#1a1a2a; border-radius:2px; margin-top:6px; overflow:hidden; }
+  .strength-fill{ height:100%; border-radius:2px; width:0; transition:width .4s,background .4s; }
+  .strength-text{ font-size:.7rem; color:var(--muted); margin-top:3px; }
+  .btn-reg{ width:100%; padding:13px; border:none; border-radius:12px; background:linear-gradient(135deg,var(--gold),var(--gold-dk)); color:#000; font-weight:700; font-size:.92rem; font-family:'DM Sans',sans-serif; cursor:pointer; transition:transform .2s,box-shadow .2s; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; }
+  .btn-reg:hover{ transform:translateY(-2px); box-shadow:0 12px 32px rgba(240,165,0,0.3); }
+  .divider{ display:flex; align-items:center; gap:12px; margin:18px 0; color:var(--muted); font-size:.78rem; }
+  .divider::before,.divider::after{ content:''; flex:1; height:1px; background:rgba(255,255,255,0.06); }
+  .login-link{ text-align:center; font-size:.85rem; color:var(--muted); }
+  .login-link a{ color:var(--gold); text-decoration:none; font-weight:600; }
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="logo-area">
+    <div class="logo-icon">🎸</div>
+    <div class="logo-name">SoundPass</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Crear Cuenta</div>
+    <div class="card-sub">Regístrate para comprar tus entradas</div>
+    <form method="POST" action="/auth/registro">
+      <div class="field">
+        <label>Nombre completo</label>
+        <div class="inp-wrap">
+          <i class="bi bi-person icon"></i>
+          <input type="text" name="nombre" placeholder="Juan Pérez" required autocomplete="name"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Correo electrónico</label>
+        <div class="inp-wrap">
+          <i class="bi bi-envelope icon"></i>
+          <input type="email" name="correo" placeholder="tu@correo.com" required autocomplete="email"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="inp-wrap">
+          <i class="bi bi-lock icon"></i>
+          <input type="password" name="password" id="pass1" placeholder="Mínimo 8 caracteres" required oninput="medirFortaleza(this.value)"/>
+          <button type="button" class="toggle-pass" onclick="tp('pass1','e1')"><i class="bi bi-eye" id="e1"></i></button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="sf"></div></div>
+        <div class="strength-text" id="st">Ingresa una contraseña</div>
+      </div>
+      <div class="field">
+        <label>Confirmar contraseña</label>
+        <div class="inp-wrap">
+          <i class="bi bi-lock-fill icon"></i>
+          <input type="password" name="confirm" id="pass2" placeholder="Repite tu contraseña" required/>
+          <button type="button" class="toggle-pass" onclick="tp('pass2','e2')"><i class="bi bi-eye" id="e2"></i></button>
+        </div>
+      </div>
+      <button type="submit" class="btn-reg"><i class="bi bi-person-plus"></i>Crear Cuenta</button>
+    </form>
+    <div class="divider">o</div>
+    <div class="login-link">¿Ya tienes cuenta? <a href="/auth/login">Inicia sesión</a></div>
+  </div>
+</div>
+<script>
+function tp(id,ico){ const i=document.getElementById(id),ic=document.getElementById(ico); i.type=i.type==='password'?'text':'password'; ic.className=i.type==='password'?'bi bi-eye':'bi bi-eye-slash'; }
+function medirFortaleza(v){
+  let s=0;
+  if(v.length>=8)s++; if(/[A-Z]/.test(v))s++; if(/[0-9]/.test(v))s++; if(/[^A-Za-z0-9]/.test(v))s++;
+  const n=[{w:'0',c:'#ff5566',l:'Muy débil'},{w:'25%',c:'#ff5566',l:'Débil'},{w:'50%',c:'#ffb830',l:'Regular'},{w:'75%',c:'#4a9eff',l:'Buena'},{w:'100%',c:'#22d97a',l:'Excelente'}][s];
+  const f=document.getElementById('sf'), t=document.getElementById('st');
+  f.style.width=v?n.w:'0'; f.style.background=n.c;
+  t.textContent=v?n.l:'Ingresa una contraseña'; t.style.color=v?n.c:'var(--muted)';
+}
+</script>
+{% endblock %}
