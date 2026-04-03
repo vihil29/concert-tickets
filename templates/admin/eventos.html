@@ -13,14 +13,7 @@
   .admin-title{ font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:1.5px; margin-bottom:4px; }
   .admin-sub{ color:var(--muted); font-size:.82rem; margin-bottom:28px; }
 
-  .btn-crear{
-    display:inline-flex; align-items:center; gap:8px;
-    padding:10px 20px; border-radius:10px; border:none; cursor:pointer;
-    background:linear-gradient(135deg,var(--gold),var(--gold-dk));
-    color:#000; font-weight:700; font-size:.88rem;
-    text-decoration:none; transition:all .2s;
-    font-family:'DM Sans',sans-serif;
-  }
+  .btn-crear{ display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:10px; border:none; cursor:pointer; background:linear-gradient(135deg,var(--gold),var(--gold-dk)); color:#000; font-weight:700; font-size:.88rem; text-decoration:none; transition:all .2s; font-family:'DM Sans',sans-serif; }
   .btn-crear:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(240,165,0,0.25); color:#000; }
 
   .table-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-top:20px; }
@@ -30,9 +23,7 @@
   .sp-table tr:last-child td{ border-bottom:none; }
   .sp-table tr:hover td{ background:rgba(255,255,255,0.02); }
 
-  .evento-nombre-cell{ font-weight:600; }
   .evento-cat-badge{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; padding:2px 10px; border-radius:6px; border:1px solid transparent; }
-
   .badge-estado{ padding:3px 10px; border-radius:6px; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
   .badge-proximo  { background:rgba(34,217,122,0.1); color:var(--green); }
   .badge-en_curso { background:rgba(240,165,0,0.1); color:var(--gold); }
@@ -40,12 +31,7 @@
   .badge-cancelado{ background:rgba(255,85,102,0.1); color:var(--red); }
   .badge-agotado  { background:rgba(255,184,48,0.1); color:#ffb830; }
 
-  .btn-sm{
-    padding:5px 12px; border-radius:7px; font-size:.72rem; border:none;
-    cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600;
-    text-decoration:none; display:inline-flex; align-items:center; gap:5px;
-    transition:all .15s;
-  }
+  .btn-sm{ padding:5px 12px; border-radius:7px; font-size:.72rem; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:5px; transition:all .15s; }
   .btn-sm-danger{ background:rgba(255,85,102,0.1); color:var(--red); border:1px solid rgba(255,85,102,0.2); }
   .btn-sm-danger:hover{ background:rgba(255,85,102,0.2); }
   .btn-sm-gold{ background:rgba(240,165,0,0.1); color:var(--gold); border:1px solid rgba(240,165,0,0.2); }
@@ -54,11 +40,7 @@
   .prog-bar{ height:5px; background:#1a1a2a; border-radius:3px; overflow:hidden; min-width:80px; }
   .prog-fill{ height:100%; border-radius:3px; }
 
-  select.estado-select{
-    background:var(--card); border:1px solid #1e1e2e; color:var(--text);
-    border-radius:7px; padding:4px 8px; font-size:.75rem; cursor:pointer;
-    font-family:'DM Sans',sans-serif; outline:none;
-  }
+  select.estado-select{ background:var(--card); border:1px solid #1e1e2e; color:var(--text); border-radius:7px; padding:4px 8px; font-size:.75rem; cursor:pointer; font-family:'DM Sans',sans-serif; outline:none; }
   @media(max-width:768px){ .admin-layout{ grid-template-columns:1fr; } .admin-sidebar{ display:none; } }
 {% endblock %}
 
@@ -93,7 +75,7 @@
           <tr>
             <th>Evento</th>
             <th>Categoría</th>
-            <th>Fecha</th>
+            <th>Fecha y Hora</th>
             <th>Lugar</th>
             <th>Ventas</th>
             <th>Estado</th>
@@ -104,7 +86,7 @@
           {% for ev in eventos %}
           <tr>
             <td>
-              <div class="evento-nombre-cell">{{ ev.nombre }}</div>
+              <div style="font-weight:600">{{ ev.nombre }}</div>
             </td>
             <td>
               <span class="evento-cat-badge"
@@ -113,8 +95,13 @@
               </span>
             </td>
             <td style="color:var(--muted);font-size:.8rem;">
-              {{ ev.fecha.strftime('%d/%m/%Y') if ev.fecha else '—' }}<br>
-              <span style="font-size:.72rem;">{{ ev.hora.strftime('%H:%M') if ev.hora else '' }}</span>
+              {# ── Safe date/time formatting ──
+                 MySQL TIME columns return as timedelta in Python.
+                 We use the pre-formatted strings set in routes.py #}
+              {{ ev.fecha_str if ev.fecha_str is defined else (ev.fecha.strftime('%d/%m/%Y') if ev.fecha else '—') }}<br>
+              <span style="font-size:.72rem;">
+                {{ ev.hora_str if ev.hora_str is defined else '' }}
+              </span>
             </td>
             <td style="color:var(--muted);font-size:.82rem;">{{ ev.lugar }}</td>
             <td>
@@ -129,7 +116,6 @@
               {% endif %}
             </td>
             <td>
-              <!-- Selector de estado -->
               <form action="/admin/eventos/{{ ev.id }}/estado" method="POST" style="display:inline">
                 <select name="estado" class="estado-select" onchange="this.form.submit()">
                   {% for est in ['proximo','en_curso','finalizado','cancelado','agotado'] %}
@@ -146,7 +132,7 @@
                   <i class="bi bi-eye"></i>Ver
                 </a>
                 <form action="/admin/eventos/{{ ev.id }}/eliminar" method="POST"
-                      onsubmit="return confirm('¿Eliminar este evento? Esta acción no se puede deshacer.')">
+                      onsubmit="return confirm('¿Eliminar este evento?')">
                   <button type="submit" class="btn-sm btn-sm-danger">
                     <i class="bi bi-trash"></i>Borrar
                   </button>

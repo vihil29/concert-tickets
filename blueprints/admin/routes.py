@@ -1,4 +1,14 @@
 """blueprints/admin/routes.py"""
+
+
+def format_hora(hora):
+    """Convierte timedelta de MySQL TIME a string HH:MM."""
+    if hora is None:
+        return ''
+    if hasattr(hora, 'strftime'):
+        return hora.strftime('%H:%M')
+    total = int(hora.total_seconds())
+    return f"{total//3600:02d}:{(total%3600)//60:02d}"
 import os
 import uuid
 from flask import render_template, request, redirect, url_for, flash, current_app, jsonify
@@ -79,6 +89,7 @@ def eventos():
 
         cursor.execute("""
             SELECT e.*, c.nombre AS cat_nombre, c.icono AS cat_icono,
+                   c.color AS cat_color,
                    (SELECT COUNT(*) FROM tickets t WHERE t.evento_id=e.id AND t.estado!='cancelado') AS vendidos,
                    (SELECT SUM(zev.capacidad) FROM zonas_evento zev WHERE zev.evento_id=e.id) AS capacidad
             FROM eventos e
@@ -86,6 +97,11 @@ def eventos():
             ORDER BY e.fecha DESC
         """)
         eventos = cursor.fetchall()
+
+        # Convertir hora (timedelta) y fecha a strings seguros
+        for ev in eventos:
+            ev['hora_str']  = format_hora(ev.get('hora'))
+            ev['fecha_str'] = ev['fecha'].strftime('%d/%m/%Y') if ev.get('fecha') else '—'
 
         cursor.execute("SELECT * FROM categorias WHERE activa=1 ORDER BY nombre")
         categorias = cursor.fetchall()
