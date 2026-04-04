@@ -1,20 +1,37 @@
 """blueprints/tickets/routes.py"""
-import uuid, threading, smtplib, base64, io
-from flask import render_template, request, redirect, url_for, flash, session, jsonify
-from werkzeug.utils import secure_filename
+import uuid
+import threading
+import smtplib
+import base64
+import io
+
 import qrcode
 from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
+from email.mime.text      import MIMEText
+from email.mime.image     import MIMEImage
+
+from flask import render_template, request, redirect, url_for, flash, session
 import mysql.connector
+
 from extensions import get_db
 from decorators import login_requerido
 from . import tickets_bp
 
 
+# ─────────────────────────────────────────────
+#  GENERAR QR EN MEMORIA
+# ─────────────────────────────────────────────
 def generar_qr_base64(codigo: str) -> str:
-    """Genera QR en memoria y retorna Base64. Negro sobre blanco para máxima compatibilidad."""
-    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=8, border=3)
+    """
+    Genera el QR del UUID en memoria (sin tocar disco).
+    Negro sobre blanco para máxima compatibilidad con lectores.
+    """
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=8,
+        border=3
+    )
     qr.add_data(codigo)
     qr.make(fit=True)
     img = qr.make_image(fill_color="#000000", back_color="#ffffff")
@@ -24,77 +41,207 @@ def generar_qr_base64(codigo: str) -> str:
     return base64.b64encode(buf.read()).decode("utf-8")
 
 
-def enviar_correo(destinatario, nombre, codigo, evento_nombre, zona_nombre, precio, qr_b64):
-    """Envía correo HTML con el ticket y QR embebido."""
-    from flask import current_app
-    cfg = current_app.config
+# ─────────────────────────────────────────────
+#  ENVIAR CORREO PRO
+# ─────────────────────────────────────────────
+def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
+                           codigo: str, evento_nombre: str, evento_fecha: str,
+                           evento_hora: str, zona_nombre: str, precio,
+                           imagen_url: str, qr_b64: str):
+    """
+    Worker que corre en un hilo separado.
+    Recibe todos los datos como argumentos simples (sin depender del contexto Flask).
+    Envía un correo HTML profesional con:
+      - Imagen del evento (si tiene URL pública)
+      - Nombre, fecha, hora del evento
+      - Nombre del asistente y zona
+      - QR embebido como imagen CID
+    """
     try:
-        msg = MIMEMultipart("related")
-        msg["Subject"] = f"🎟️ Tu Ticket — {evento_nombre}"
-        msg["From"]    = cfg["EMAIL_REMITENTE"]
-        msg["To"]      = destinatario
+        print(f"[CORREO] Enviando a {destinatario}...")
 
-        alt = MIMEMultipart("alternative")
-        msg.attach(alt)
+        remitente   = cfg["EMAIL_REMITENTE"]
+        app_pass    = cfg["EMAIL_APP_PASS"]
 
+        # Estructura MIME: related permite embeber imágenes con CID
+        msg_root = MIMEMultipart("related")
+        msg_root["Subject"] = f"🎟️ Tu Ticket — {evento_nombre}"
+        msg_root["From"]    = f"SoundPass <{remitente}>"
+        msg_root["To"]      = destinatario
+
+        msg_alt = MIMEMultipart("alternative")
+        msg_root.attach(msg_alt)
+
+        # ── Imagen del evento ──
+        # Si tiene URL pública la descargamos para embeberla como CID
+        # Si no, usamos un placeholder de color
+        evento_img_html = ""
+        if imagen_url:
+            try:
+                import urllib.request
+                # Construir URL absoluta si es relativa
+                if imagen_url.startswith("/"):
+                    # URL relativa → usar URL del dominio
+                    full_url = f"https://soundpass.shop{imagen_url}"
+                else:
+                    full_url = imagen_url
+
+                with urllib.request.urlopen(full_url, timeout=5) as resp:
+                    img_data   = resp.read()
+                    img_mime2  = MIMEImage(img_data)
+                    img_mime2.add_header("Content-ID", "<evento_img>")
+                    img_mime2.add_header("Content-Disposition", "inline")
+                    msg_root.attach(img_mime2)
+                    evento_img_html = '<img src="cid:evento_img" width="100%" style="display:block;border-radius:12px 12px 0 0;max-height:220px;object-fit:cover;"/>'
+            except Exception as img_err:
+                print(f"[CORREO] No se pudo cargar imagen del evento: {img_err}")
+                # Fallback: bloque de color con emoji
+                evento_img_html = '<div style="height:100px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:12px 12px 0 0;">🎸</div>'
+
+        # ── HTML del correo ──
         html = f"""
-        <html><body style="background:#080810;font-family:Arial,sans-serif;padding:32px 0;">
-        <table width="520" cellpadding="0" cellspacing="0" style="margin:auto;background:#12121e;
-               border-radius:20px;border:1px solid rgba(240,165,0,0.25);">
-          <tr><td style="background:linear-gradient(135deg,#1a1a2e,#0d0d1a);padding:32px;
-                         text-align:center;border-radius:20px 20px 0 0;">
-            <p style="color:rgba(240,165,0,.6);font-size:12px;letter-spacing:3px;
-                      text-transform:uppercase;margin:0 0 8px">🎸 SOUNDPASS</p>
-            <h1 style="color:#f0a500;margin:0;font-size:26px;letter-spacing:2px;">TICKET CONFIRMADO</h1>
-          </td></tr>
-          <tr><td style="padding:28px 32px;">
-            <p style="color:#aaa;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:1px">Evento</p>
-            <p style="color:#fff;font-size:18px;font-weight:bold;margin:0 0 20px">{evento_nombre}</p>
-            <p style="color:#aaa;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:1px">Asistente</p>
-            <p style="color:#fff;font-size:16px;margin:0 0 20px">{nombre}</p>
-            <p style="color:#aaa;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:1px">Zona</p>
-            <p style="margin:0 0 24px"><span style="background:rgba(240,165,0,.12);color:#f0a500;
-               border:1px solid rgba(240,165,0,.3);border-radius:6px;padding:4px 14px;font-size:14px">
-               {zona_nombre} — ${precio}</span></p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td align="center" style="background:#0d0d1a;border:2px dashed rgba(240,165,0,.3);
-                      border-radius:16px;padding:24px;">
-                <p style="color:#555;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px">
-                  Código QR de Acceso</p>
-                <img src="cid:qr_image" width="180" height="180"
-                     style="border-radius:8px;display:block;margin:0 auto"/>
-                <p style="color:#2a2a3a;font-size:9px;font-family:Courier New,monospace;
-                          word-break:break-all;margin:14px 0 0">{codigo}</p>
+        <!DOCTYPE html>
+        <html lang="es">
+        <body style="margin:0;padding:0;background:#080810;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#080810;padding:28px 0;">
+          <tr><td align="center">
+            <table width="540" cellpadding="0" cellspacing="0"
+                   style="max-width:540px;background:#12121e;border-radius:16px;
+                          border:1px solid rgba(240,165,0,0.2);overflow:hidden;">
+
+              <!-- Imagen del evento -->
+              {evento_img_html}
+
+              <!-- Cabecera -->
+              <tr><td style="background:linear-gradient(135deg,#1a1a2e,#0d0d1a);
+                             padding:28px 32px 22px;text-align:center;
+                             border-bottom:1px dashed rgba(255,255,255,0.06);">
+                <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;
+                           text-transform:uppercase;color:rgba(240,165,0,0.55);">
+                  🎟️ SOUNDPASS · TICKET CONFIRMADO
+                </p>
+                <h1 style="margin:0;font-size:26px;color:#f0a500;letter-spacing:1px;
+                            font-family:Arial Black,sans-serif;">
+                  {evento_nombre}
+                </h1>
               </td></tr>
+
+              <!-- Detalles del evento -->
+              <tr><td style="padding:24px 32px 0;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:0 8px 16px 0;width:50%;vertical-align:top;">
+                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                                 text-transform:uppercase;letter-spacing:1px;">Fecha</p>
+                      <p style="margin:0;font-size:15px;color:#fff;font-weight:bold;">
+                        {evento_fecha}
+                      </p>
+                    </td>
+                    <td style="padding:0 0 16px 8px;width:50%;vertical-align:top;">
+                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                                 text-transform:uppercase;letter-spacing:1px;">Hora</p>
+                      <p style="margin:0;font-size:15px;color:#fff;font-weight:bold;">
+                        {evento_hora} hrs
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding:0 0 20px;">
+                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                                 text-transform:uppercase;letter-spacing:1px;">Asistente</p>
+                      <p style="margin:0;font-size:18px;color:#fff;font-weight:bold;">
+                        {nombre}
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding:0 0 24px;">
+                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                                 text-transform:uppercase;letter-spacing:1px;">Zona</p>
+                      <span style="background:rgba(240,165,0,0.12);color:#f0a500;
+                                   border:1px solid rgba(240,165,0,0.3);border-radius:6px;
+                                   padding:5px 16px;font-size:14px;font-weight:bold;">
+                        {zona_nombre} — ${precio}
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+              </td></tr>
+
+              <!-- QR -->
+              <tr><td style="padding:0 32px 28px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td align="center"
+                          style="background:#0d0d1a;border:2px dashed rgba(240,165,0,0.25);
+                                 border-radius:14px;padding:24px;">
+                    <p style="margin:0 0 14px;font-size:10px;color:#555;
+                               text-transform:uppercase;letter-spacing:2px;">
+                      Código QR de Acceso
+                    </p>
+                    <img src="cid:qr_image" width="180" height="180"
+                         style="display:block;margin:0 auto;border-radius:8px;
+                                background:#fff;padding:6px;"/>
+                    <p style="margin:14px 0 0;font-size:9px;color:#2a2a3a;
+                               font-family:Courier New,monospace;word-break:break-all;">
+                      {codigo}
+                    </p>
+                  </td></tr>
+                </table>
+              </td></tr>
+
+              <!-- Footer -->
+              <tr><td style="background:rgba(0,0,0,0.3);padding:14px 32px;
+                             text-align:center;border-top:1px solid rgba(255,255,255,0.04);">
+                <p style="margin:0;font-size:11px;color:#2a2a3a;">
+                  🔒 Presenta el QR en la entrada · Un solo uso · No compartas
+                </p>
+              </td></tr>
+
             </table>
           </td></tr>
-          <tr><td style="background:rgba(0,0,0,.3);padding:16px 32px;text-align:center;
-                         border-radius:0 0 20px 20px;">
-            <p style="color:#333;font-size:11px;margin:0">🔒 Presenta el QR en la entrada · Un solo uso</p>
-          </td></tr>
-        </table></body></html>"""
+        </table>
+        </body></html>
+        """
 
-        alt.attach(MIMEText(html, "html"))
-        qr_bytes = base64.b64decode(qr_b64)
-        img_mime = MIMEImage(qr_bytes, _subtype="png")
+        msg_alt.attach(MIMEText(html, "html"))
+
+        # Embeber QR como imagen CID
+        qr_bytes  = base64.b64decode(qr_b64)
+        img_mime  = MIMEImage(qr_bytes, _subtype="png")
         img_mime.add_header("Content-ID", "<qr_image>")
         img_mime.add_header("Content-Disposition", "inline")
-        msg.attach(img_mime)
+        msg_root.attach(img_mime)
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as s:
-            s.ehlo(); s.starttls(); s.ehlo()
-            s.login(cfg["EMAIL_REMITENTE"], cfg["EMAIL_APP_PASS"])
-            s.sendmail(cfg["EMAIL_REMITENTE"], destinatario, msg.as_string())
+        # Enviar con STARTTLS puerto 587
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(remitente, app_pass)
+            server.sendmail(remitente, destinatario, msg_root.as_string())
 
-        print(f"[CORREO] ✅ Enviado a {destinatario}")
+        print(f"[CORREO] ✅ Enviado correctamente a {destinatario}")
+
+    except smtplib.SMTPAuthenticationError:
+        print("[CORREO ERROR] ❌ App Password incorrecto o 2FA no activo")
     except Exception as e:
-        print(f"[CORREO ERROR] {e}")
+        print(f"[CORREO ERROR] ❌ {type(e).__name__}: {e}")
 
 
+# ─────────────────────────────────────────────
+#  RUTA: Comprar ticket
+# ─────────────────────────────────────────────
 @tickets_bp.route("/comprar/<int:evento_id>", methods=["POST"])
 @login_requerido
 def comprar(evento_id):
-    """Procesa la compra de un ticket."""
+    """
+    Flujo de compra:
+    1. Validar zona y disponibilidad
+    2. Generar UUID + QR en memoria
+    3. Guardar ticket en DB
+    4. Lanzar hilo de correo (sin depender del contexto Flask)
+    5. Mostrar confirmación con QR
+    """
     zona_id = request.form.get("zona_id", "").strip()
     nombre  = request.form.get("nombre",  "").strip()
     correo  = request.form.get("correo",  "").strip()
@@ -111,9 +258,14 @@ def comprar(evento_id):
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # Verificar que la zona existe y tiene disponibilidad
+        # Verificar zona y disponibilidad (incluye imagen del evento)
         cursor.execute("""
-            SELECT zev.*, e.nombre AS evento_nombre, e.id AS eid
+            SELECT zev.*,
+                   e.nombre      AS evento_nombre,
+                   e.imagen_url  AS evento_imagen,
+                   e.fecha       AS evento_fecha,
+                   e.hora        AS evento_hora,
+                   e.id          AS eid
             FROM zonas_evento zev
             JOIN eventos e ON zev.evento_id = e.id
             WHERE zev.id = %s AND zev.evento_id = %s
@@ -134,31 +286,62 @@ def comprar(evento_id):
             VALUES (%s, %s, %s, %s, %s, %s, 'activo')
         """, (codigo, session.get("usuario_id"), evento_id, zona_id, nombre, correo))
 
-        # Actualizar contador de vendidos
+        # Incrementar vendidos
         cursor.execute(
             "UPDATE zonas_evento SET vendidos = vendidos + 1 WHERE id = %s", (zona_id,)
         )
         conn.commit()
 
-        # Enviar correo en hilo separado
+        # ── Preparar datos para el correo ──
+        # Convertir hora (timedelta) a string seguro
+        hora_obj = zona.get("evento_hora")
+        if hora_obj and hasattr(hora_obj, 'total_seconds'):
+            total = int(hora_obj.total_seconds())
+            hora_str = f"{total//3600:02d}:{(total%3600)//60:02d}"
+        elif hora_obj and hasattr(hora_obj, 'strftime'):
+            hora_str = hora_obj.strftime('%H:%M')
+        else:
+            hora_str = "—"
+
+        fecha_obj = zona.get("evento_fecha")
+        fecha_str = fecha_obj.strftime('%d de %B de %Y') if fecha_obj else "—"
+
         from flask import current_app
-        app = current_app._get_current_object()
-        threading.Thread(
-            target=lambda: app.app_context().__enter__() or enviar_correo(
-                correo, nombre, codigo,
-                zona["evento_nombre"], zona["nombre"], zona["precio"], qr_base64
+        cfg = {
+            "EMAIL_REMITENTE": current_app.config.get("EMAIL_REMITENTE", ""),
+            "EMAIL_APP_PASS":  current_app.config.get("EMAIL_APP_PASS",  ""),
+        }
+
+        # ── Lanzar hilo de correo ──
+        # Pasamos TODOS los datos como argumentos simples (strings, no objetos Flask)
+        # Así el hilo no depende del contexto de Flask y no falla
+        hilo = threading.Thread(
+            target=_enviar_correo_worker,
+            args=(
+                cfg,
+                correo,
+                nombre,
+                codigo,
+                zona["evento_nombre"],
+                fecha_str,
+                hora_str,
+                zona["nombre"],
+                zona["precio"],
+                zona.get("evento_imagen") or "",
+                qr_base64
             ),
             daemon=True
-        ).start()
+        )
+        hilo.start()
 
         return render_template("tickets/confirmacion.html",
-            nombre     = nombre,
-            correo     = correo,
-            zona       = zona["nombre"],
-            precio     = zona["precio"],
-            evento     = zona["evento_nombre"],
-            codigo     = codigo,
-            qr_base64  = qr_base64
+            nombre    = nombre,
+            correo    = correo,
+            zona      = zona["nombre"],
+            precio    = zona["precio"],
+            evento    = zona["evento_nombre"],
+            codigo    = codigo,
+            qr_base64 = qr_base64
         )
 
     except mysql.connector.Error as e:
