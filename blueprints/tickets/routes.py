@@ -212,13 +212,15 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
         img_mime.add_header("Content-Disposition", "inline")
         msg_root.attach(img_mime)
 
-        # Enviar con STARTTLS puerto 587
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        # Enviar con Brevo SMTP
+        smtp_host = cfg.get("EMAIL_SMTP_HOST", "smtp-relay.brevo.com")
+        smtp_user = "soundpass@soundpass.shop"
+        with smtplib.SMTP(smtp_host, 587) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(remitente, app_pass)
-            server.sendmail(remitente, destinatario, msg_root.as_string())
+            server.login(smtp_user, app_pass)
+            server.sendmail(smtp_user, destinatario, msg_root.as_string())
 
         print(f"[CORREO] ✅ Enviado correctamente a {destinatario}")
 

@@ -25,6 +25,8 @@ class Config:
     # ── Correo ──
     EMAIL_REMITENTE = os.getenv("EMAIL_REMITENTE")
     EMAIL_APP_PASS  = os.getenv("EMAIL_APP_PASS")
+    EMAIL_SMTP_HOST = os.getenv("EMAIL_SMTP_HOST", "smtp-relay.brevo.com")
+    EMAIL_SMTP_USER = os.getenv("EMAIL_SMTP_USER", "")
 
     # ── Uploads ──
     UPLOAD_FOLDER   = os.path.join(os.path.dirname(__file__), "static", "uploads")
