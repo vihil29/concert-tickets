@@ -312,6 +312,8 @@ def comprar(evento_id):
         cfg = {
             "EMAIL_REMITENTE": current_app.config.get("EMAIL_REMITENTE", ""),
             "EMAIL_APP_PASS":  current_app.config.get("EMAIL_APP_PASS",  ""),
+            "EMAIL_SMTP_HOST": current_app.config.get("EMAIL_SMTP_HOST", "smtp-relay.brevo.com"),
+            "EMAIL_SMTP_USER": current_app.config.get("EMAIL_SMTP_USER", ""),
         }
 
         # ── Lanzar hilo de correo ──
