@@ -78,29 +78,37 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
         msg_root.attach(msg_alt)
 
         # ── Imagen del evento ──
-        # Si tiene URL pública la descargamos para embeberla como CID
-        # Si no, usamos un placeholder de color
         evento_img_html = ""
         if imagen_url:
             try:
-                import urllib.request
-                # Construir URL absoluta si es relativa
-                if imagen_url.startswith("/"):
-                    # URL relativa → usar URL del dominio
-                    full_url = f"https://soundpass.shop{imagen_url}"
-                else:
-                    full_url = imagen_url
+                import os
+                
+                # 1. Limpiamos la ruta y le decimos dónde está en el VPS
+                ruta_limpia = imagen_url.lstrip("/")
+                ruta_absoluta = os.path.join("/var/www/concert_tickets", ruta_limpia)
+                
+                # 2. Abrimos la imagen física desde el disco duro
+                with open(ruta_absoluta, "rb") as f:
+                    img_data = f.read()
 
-                with urllib.request.urlopen(full_url, timeout=5) as resp:
-                    img_data   = resp.read()
-                    img_mime2  = MIMEImage(img_data)
+                # 3. Extraemos la extensión (.webp, .jpg) para evitar errores en el correo
+                ext = os.path.splitext(ruta_absoluta)[1].lower().replace(".", "")
+                if ext == "jpg": 
+                    ext = "jpeg"  # El formato interno oficial para jpg es 'jpeg'
+                if not ext:
+                    ext = "png"   # Por si acaso viene sin extensión
+
+                # 4. Embebemos la imagen en el correo
+                if img_data:
+                    img_mime2 = MIMEImage(img_data, _subtype=ext)
                     img_mime2.add_header("Content-ID", "<evento_img>")
                     img_mime2.add_header("Content-Disposition", "inline")
                     msg_root.attach(img_mime2)
+                    
                     evento_img_html = '<img src="cid:evento_img" width="100%" style="display:block;border-radius:12px 12px 0 0;max-height:220px;object-fit:cover;"/>'
+            
             except Exception as img_err:
-                print(f"[CORREO] No se pudo cargar imagen del evento: {img_err}")
-                # Fallback: bloque de color con emoji
+                print(f"[CORREO] No se pudo cargar imagen local del evento: {img_err}")
                 evento_img_html = '<div style="height:100px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:12px 12px 0 0;">🎸</div>'
 
         # ── HTML del correo ──
