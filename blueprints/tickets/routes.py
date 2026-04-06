@@ -58,7 +58,12 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
       - QR embebido como imagen CID
     """
     try:
-        print(f"[CORREO] Enviando a {destinatario}...")
+        import logging
+        logging.basicConfig(filename='/tmp/soundpass_mail.log', level=logging.DEBUG,
+                            format='%(asctime)s %(message)s')
+        log = logging.getLogger(__name__)
+        
+        log.info(f"[CORREO] Enviando a {destinatario}...")
 
         remitente   = cfg["EMAIL_REMITENTE"]
         app_pass    = cfg["EMAIL_APP_PASS"]
@@ -213,14 +218,17 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
         msg_root.attach(img_mime)
 
         # Enviar con Brevo SMTP
+        # Enviar con Brevo SMTP
         smtp_host = cfg.get("EMAIL_SMTP_HOST", "smtp-relay.brevo.com")
-        smtp_user = "soundpass@soundpass.shop"
+        smtp_user = cfg.get("EMAIL_SMTP_USER")  # ✅ Ahora sí lee tu usuario a72087001...
+        
         with smtplib.SMTP(smtp_host, 587) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
             server.login(smtp_user, app_pass)
-            server.sendmail(smtp_user, destinatario, msg_root.as_string())
+            # Usamos send_message que es más moderno y lee el 'From' y 'To' automáticamente
+            server.send_message(msg_root)
 
         print(f"[CORREO] ✅ Enviado correctamente a {destinatario}")
 
