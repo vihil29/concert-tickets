@@ -366,7 +366,7 @@
     </div>
 
     {% if session.get('usuario_id') %}
-    <form action="/tickets/comprar/{{ evento.id }}" method="POST" id="form-compra">
+    <form action="/payments/checkout/{{ evento.id }}" method="POST" id="form-compra">
       <input type="hidden" name="zona_id" id="zona-id-hidden" value=""/>
       <div class="form-field">
         <label>Nombre completo</label>

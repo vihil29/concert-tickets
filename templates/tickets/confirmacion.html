@@ -66,6 +66,12 @@
 
 {% block content %}
 <div class="confirm-wrap">
+  {% if pago_ok %}
+  <div class="email-notice" style="background:rgba(34,217,122,0.06);border-color:rgba(34,217,122,0.2);">
+    <i class="bi bi-shield-check fs-5" style="color:#22d97a"></i>
+    <span style="color:#22d97a"><strong>Pago verificado por Stripe</strong> · Tu ticket está confirmado</span>
+  </div>
+  {% endif %}
   <div class="email-notice">
     <i class="bi bi-envelope-check fs-5"></i>
     <span>Tu ticket fue enviado a <strong style="color:var(--gold)">{{ correo }}</strong></span>
