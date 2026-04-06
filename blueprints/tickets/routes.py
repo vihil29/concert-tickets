@@ -105,14 +105,13 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                     img_mime2.add_header("Content-Disposition", "inline")
                     msg_root.attach(img_mime2)
                     
-                    evento_img_html = '<img src="cid:evento_img" width="100%" style="display:block;border-radius:12px 12px 0 0;max-height:220px;object-fit:cover;"/>'
+                    evento_img_html = '<img src="cid:evento_img" style="display:block; max-width: 100%; max-height: 180px; margin: 0 auto; object-fit: contain;"/>'            
             
             except Exception as img_err:
                 print(f"[CORREO] No se pudo cargar imagen local del evento: {img_err}")
                 evento_img_html = '<div style="height:100px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:12px 12px 0 0;">🎸</div>'
 
-        # ── HTML del correo ──
-        # He rediseñado esto para que parezca un ticket premium con un contenedor limpio
+        # ── HTML del correo definitivo (Título arriba, Imagen abajo) ──
         html = f"""
         <!DOCTYPE html>
         <html lang="es">
@@ -125,15 +124,7 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                           box-shadow: 0 10px 25px rgba(0,0,0,0.25);
                           border:1px solid rgba(240,165,0,0.1);overflow:hidden;">
 
-              <tr><td style="padding: 24px 24px 0 24px;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr><td align="center" style="background-color: #080810; border-radius: 12px; overflow: hidden; padding: 12px 0;">
-                    {evento_img_html if imagen_url else '<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:3rem;color:#f0a500;">🎸</div>'}
-                  </td></tr>
-                </table>
-              </td></tr>
-
-              <tr><td style="padding:22px 32px;text-align:center;">
+              <tr><td style="padding:30px 32px 22px 32px;text-align:center;">
                 <img src="https://soundpass.shop/static/logo.png" alt="SoundPass Logo" height="30" style="display:block;margin:0 auto 12px auto; filter: drop-shadow(0 0 4px #f0a500);">
                 
                 <p style="margin:0;font-size:11px;letter-spacing:3px;
@@ -144,6 +135,14 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                             font-family:Arial Black,sans-serif; text-shadow: 0 0 10px rgba(240,165,0,0.1);">
                   {evento_nombre}
                 </h1>
+              </td></tr>
+
+              <tr><td style="padding: 10px 24px 0 24px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td align="center" style="background-color: #080810; border-radius: 12px; overflow: hidden; padding: 12px 0;">
+                    {evento_img_html if imagen_url else '<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:3rem;color:#f0a500;">🎸</div>'}
+                  </td></tr>
+                </table>
               </td></tr>
 
               <tr><td style="padding:0 32px;"><table width="100%" style="border-top:1px dashed rgba(240,165,0,0.15);"><tr><td></td></tr></table></td></tr>
@@ -189,7 +188,7 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
 
               <tr><td style="padding:28px 32px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr><td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 24px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);">
+                  <tr><td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 24px;">
                     <p style="margin:0 0 18px;font-size:10px;color:#0d0d1a;
                                text-transform:uppercase;letter-spacing:2px;font-weight:bold;">
                       Código QR de Acceso
