@@ -112,89 +112,92 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                 evento_img_html = '<div style="height:100px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:12px 12px 0 0;">🎸</div>'
 
         # ── HTML del correo ──
+        # He rediseñado esto para que parezca un ticket premium con un contenedor limpio
         html = f"""
         <!DOCTYPE html>
         <html lang="es">
-        <body style="margin:0;padding:0;background:#080810;font-family:Arial,sans-serif;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#080810;padding:28px 0;">
+        <body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;padding:40px 0;">
           <tr><td align="center">
-            <table width="540" cellpadding="0" cellspacing="0"
-                   style="max-width:540px;background:#12121e;border-radius:16px;
-                          border:1px solid rgba(240,165,0,0.2);overflow:hidden;">
+            
+            <table width="520" cellpadding="0" cellspacing="0" 
+                   style="max-width:520px;background-color:#12121e;border-radius:20px;
+                          box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+                          border:1px solid rgba(240,165,0,0.1);overflow:hidden;">
 
-              <!-- Imagen del evento -->
-              {evento_img_html}
+              <tr><td style="padding: 24px 24px 0 24px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td align="center" style="background-color: #080810; border-radius: 12px; overflow: hidden; padding: 12px 0;">
+                    {evento_img_html if imagen_url else '<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:3rem;color:#f0a500;">🎸</div>'}
+                  </td></tr>
+                </table>
+              </td></tr>
 
-              <!-- Cabecera -->
-              <tr><td style="background:linear-gradient(135deg,#1a1a2e,#0d0d1a);
-                             padding:28px 32px 22px;text-align:center;
-                             border-bottom:1px dashed rgba(255,255,255,0.06);">
-                <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;
-                           text-transform:uppercase;color:rgba(240,165,0,0.55);">
+              <tr><td style="padding:22px 32px;text-align:center;">
+                <img src="https://soundpass.shop/static/logo.png" alt="SoundPass Logo" height="30" style="display:block;margin:0 auto 12px auto; filter: drop-shadow(0 0 4px #f0a500);">
+                
+                <p style="margin:0;font-size:11px;letter-spacing:3px;
+                           text-transform:uppercase;color:rgba(240,165,0,0.6);">
                   🎟️ SOUNDPASS · TICKET CONFIRMADO
                 </p>
-                <h1 style="margin:0;font-size:26px;color:#f0a500;letter-spacing:1px;
-                            font-family:Arial Black,sans-serif;">
+                <h1 style="margin:6px 0 0 0;font-size:28px;color:#f0a500;letter-spacing:1px;
+                            font-family:Arial Black,sans-serif; text-shadow: 0 0 10px rgba(240,165,0,0.1);">
                   {evento_nombre}
                 </h1>
               </td></tr>
 
-              <!-- Detalles del evento -->
+              <tr><td style="padding:0 32px;"><table width="100%" style="border-top:1px dashed rgba(240,165,0,0.15);"><tr><td></td></tr></table></td></tr>
+
               <tr><td style="padding:24px 32px 0;">
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="padding:0 8px 16px 0;width:50%;vertical-align:top;">
-                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                    <td style="padding:0 8px 20px 0;width:50%;vertical-align:top;text-align:center;">
+                      <p style="margin:0 0 4px;font-size:10px;color:rgba(255,255,255,0.4);
                                  text-transform:uppercase;letter-spacing:1px;">Fecha</p>
-                      <p style="margin:0;font-size:15px;color:#fff;font-weight:bold;">
+                      <p style="margin:0;font-size:16px;color:#fff;font-weight:bold;">
                         {evento_fecha}
                       </p>
                     </td>
-                    <td style="padding:0 0 16px 8px;width:50%;vertical-align:top;">
-                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                    <td style="padding:0 0 20px 8px;width:50%;vertical-align:top;text-align:center;">
+                      <p style="margin:0 0 4px;font-size:10px;color:rgba(255,255,255,0.4);
                                  text-transform:uppercase;letter-spacing:1px;">Hora</p>
-                      <p style="margin:0;font-size:15px;color:#fff;font-weight:bold;">
+                      <p style="margin:0;font-size:16px;color:#fff;font-weight:bold;">
                         {evento_hora} hrs
                       </p>
                     </td>
-                  </tr>
-                  <tr>
-                    <td colspan="2" style="padding:0 0 20px;">
-                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                  </td></tr>
+                  <tr><td colspan="2" style="padding:0 0 24px;text-align:center;">
+                      <p style="margin:0 0 4px;font-size:10px;color:rgba(255,255,255,0.4);
                                  text-transform:uppercase;letter-spacing:1px;">Asistente</p>
-                      <p style="margin:0;font-size:18px;color:#fff;font-weight:bold;">
+                      <p style="margin:0;font-size:20px;color:#fff;font-weight:bold;">
                         {nombre}
                       </p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colspan="2" style="padding:0 0 24px;">
-                      <p style="margin:0 0 3px;font-size:10px;color:#444;
+                  </td></tr>
+                  <tr><td colspan="2" style="padding:0 0 30px;text-align:center;">
+                      <p style="margin:0 0 4px;font-size:10px;color:rgba(255,255,255,0.4);
                                  text-transform:uppercase;letter-spacing:1px;">Zona</p>
-                      <span style="background:rgba(240,165,0,0.12);color:#f0a500;
-                                   border:1px solid rgba(240,165,0,0.3);border-radius:6px;
-                                   padding:5px 16px;font-size:14px;font-weight:bold;">
+                      <span style="background:rgba(240,165,0,0.1);color:#f0a500;
+                                   border:1px solid rgba(240,165,0,0.25);border-radius:6px;
+                                   padding:8px 20px;font-size:15px;font-weight:bold;">
                         {zona_nombre} — ${precio}
                       </span>
-                    </td>
-                  </tr>
+                  </td></tr>
                 </table>
               </td></tr>
 
-              <!-- QR -->
-              <tr><td style="padding:0 32px 28px;">
+              <tr><td style="padding:0 32px;"><table width="100%" style="border-top:2px dashed rgba(240,165,0,0.15);"><tr><td></td></tr></table></td></tr>
+
+              <tr><td style="padding:28px 32px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr><td align="center"
-                          style="background:#0d0d1a;border:2px dashed rgba(240,165,0,0.25);
-                                 border-radius:14px;padding:24px;">
-                    <p style="margin:0 0 14px;font-size:10px;color:#555;
-                               text-transform:uppercase;letter-spacing:2px;">
+                  <tr><td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 24px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);">
+                    <p style="margin:0 0 18px;font-size:10px;color:#0d0d1a;
+                               text-transform:uppercase;letter-spacing:2px;font-weight:bold;">
                       Código QR de Acceso
                     </p>
                     <img src="cid:qr_image" width="180" height="180"
                          style="display:block;margin:0 auto;border-radius:8px;
-                                background:#fff;padding:6px;"/>
-                    <p style="margin:14px 0 0;font-size:9px;color:#2a2a3a;
+                                background:#fff;padding:4px;"/>
+                    <p style="margin:18px 0 0;font-size:9px;color:rgba(0,0,0,0.3);
                                font-family:Courier New,monospace;word-break:break-all;">
                       {codigo}
                     </p>
@@ -202,15 +205,19 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                 </table>
               </td></tr>
 
-              <!-- Footer -->
-              <tr><td style="background:rgba(0,0,0,0.3);padding:14px 32px;
+              <tr><td style="background-color: rgba(0,0,0,0.2);padding:14px 32px;
                              text-align:center;border-top:1px solid rgba(255,255,255,0.04);">
-                <p style="margin:0;font-size:11px;color:#2a2a3a;">
+                <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.25);">
                   🔒 Presenta el QR en la entrada · Un solo uso · No compartas
                 </p>
               </td></tr>
 
             </table>
+
+            <p style="font-size:12px;color:#555555;margin-top:20px;">
+              Este es tu ticket electrónico oficial para el evento. ¡Disfrútalo!
+            </p>
+
           </td></tr>
         </table>
         </body></html>
