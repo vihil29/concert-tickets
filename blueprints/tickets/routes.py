@@ -111,7 +111,7 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                 print(f"[CORREO] No se pudo cargar imagen local del evento: {img_err}")
                 evento_img_html = '<div style="height:100px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:12px 12px 0 0;">🎸</div>'
 
-        # ── HTML del correo definitivo (Título arriba, Imagen abajo) ──
+       # ── HTML del correo definitivo (Con Logo en Texto/Emoji) ──
         html = f"""
         <!DOCTYPE html>
         <html lang="es">
@@ -125,11 +125,15 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                           border:1px solid rgba(240,165,0,0.1);overflow:hidden;">
 
               <tr><td style="padding:30px 32px 22px 32px;text-align:center;">
-                <img src="https://soundpass.shop/static/logo.png" alt="SoundPass Logo" height="30" style="display:block;margin:0 auto 12px auto; filter: drop-shadow(0 0 4px #f0a500);">
+                
+                <div style="margin-bottom: 14px;">
+                  <span style="font-size: 26px; vertical-align: middle; margin-right: 6px;">🎸</span>
+                  <span style="font-size: 26px; color: #f0a500; font-family: 'Arial Black', Impact, sans-serif; font-weight: bold; letter-spacing: 1px; vertical-align: middle;">SOUNDPASS</span>
+                </div>
                 
                 <p style="margin:0;font-size:11px;letter-spacing:3px;
                            text-transform:uppercase;color:rgba(240,165,0,0.6);">
-                  🎟️ SOUNDPASS · TICKET CONFIRMADO
+                  🎟️ TICKET CONFIRMADO
                 </p>
                 <h1 style="margin:6px 0 0 0;font-size:28px;color:#f0a500;letter-spacing:1px;
                             font-family:Arial Black,sans-serif; text-shadow: 0 0 10px rgba(240,165,0,0.1);">
@@ -204,7 +208,7 @@ def _enviar_correo_worker(cfg: dict, destinatario: str, nombre: str,
                 </table>
               </td></tr>
 
-              <tr><td style="background-color: rgba(0,0,0,0.2);padding:14px 32px;
+              <tr><td style="background: rgba(0,0,0,0.2);padding:14px 32px;
                              text-align:center;border-top:1px solid rgba(255,255,255,0.04);">
                 <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.25);">
                   🔒 Presenta el QR en la entrada · Un solo uso · No compartas
