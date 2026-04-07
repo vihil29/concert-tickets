@@ -143,14 +143,16 @@ def success():
             flash("El pago no fue completado.", "warning")
             return redirect(url_for("public.index"))
 
-        # Verificar que no procesamos este pago antes (idempotencia)
-        meta_dict  = dict(checkout_session.metadata)
+        # Convertir la sesión entera a un diccionario nativo de Python
+        session_dict = checkout_session.to_dict()
+        meta_dict    = session_dict.get("metadata", {})
+        
         evento_id  = int(meta_dict["evento_id"])
         zona_id    = int(meta_dict["zona_id"])
         nombre     = meta_dict["nombre"]
         correo     = meta_dict["correo"]
         usuario_id = int(meta_dict["usuario_id"]) if meta_dict.get("usuario_id") else None
-        stripe_session_id = checkout_session.id
+        stripe_session_id = session_dict["id"]
 
         conn = cursor = None
         try:
@@ -298,13 +300,16 @@ def _procesar_pago_webhook(checkout_session):
     Funciona igual que /success pero sin contexto HTTP.
     """
     try:
-        meta_dict        = dict(checkout_session["metadata"])
+        # Convertir a diccionario por si viene como StripeObject
+        session_dict     = checkout_session.to_dict() if hasattr(checkout_session, 'to_dict') else checkout_session
+        meta_dict        = session_dict.get("metadata", {})
+        
         evento_id        = int(meta_dict["evento_id"])
         zona_id          = int(meta_dict["zona_id"])
         nombre           = meta_dict["nombre"]
         correo           = meta_dict["correo"]
         usuario_id       = int(meta_dict.get("usuario_id") or 0) or None
-        stripe_session_id = checkout_session["id"]
+        stripe_session_id = session_dict["id"]
 
         conn = cursor = None
         try:
