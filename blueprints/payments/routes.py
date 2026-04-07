@@ -144,12 +144,12 @@ def success():
             return redirect(url_for("public.index"))
 
         # Verificar que no procesamos este pago antes (idempotencia)
-        meta       = checkout_session.metadata
-        evento_id  = int(meta["evento_id"])
-        zona_id    = int(meta["zona_id"])
-        nombre     = meta["nombre"]
-        correo     = meta["correo"]
-        usuario_id = int(meta["usuario_id"]) if meta.get("usuario_id") else None
+        meta_dict  = dict(checkout_session.metadata)
+        evento_id  = int(meta_dict["evento_id"])
+        zona_id    = int(meta_dict["zona_id"])
+        nombre     = meta_dict["nombre"]
+        correo     = meta_dict["correo"]
+        usuario_id = int(meta_dict["usuario_id"]) if meta_dict.get("usuario_id") else None
         stripe_session_id = checkout_session.id
 
         conn = cursor = None
@@ -298,12 +298,12 @@ def _procesar_pago_webhook(checkout_session):
     Funciona igual que /success pero sin contexto HTTP.
     """
     try:
-        meta             = checkout_session["metadata"]
-        evento_id        = int(meta["evento_id"])
-        zona_id          = int(meta["zona_id"])
-        nombre           = meta["nombre"]
-        correo           = meta["correo"]
-        usuario_id       = int(meta.get("usuario_id") or 0) or None
+        meta_dict        = dict(checkout_session["metadata"])
+        evento_id        = int(meta_dict["evento_id"])
+        zona_id          = int(meta_dict["zona_id"])
+        nombre           = meta_dict["nombre"]
+        correo           = meta_dict["correo"]
+        usuario_id       = int(meta_dict.get("usuario_id") or 0) or None
         stripe_session_id = checkout_session["id"]
 
         conn = cursor = None
