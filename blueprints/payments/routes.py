@@ -160,7 +160,6 @@ def success():
             cursor = conn.cursor(dictionary=True)
 
             # Verificar si ya existe un ticket con este stripe_session_id
-            # para evitar crear duplicados si el usuario recarga la página
             cursor.execute(
                 "SELECT id, codigo FROM tickets WHERE stripe_session_id = %s",
                 (stripe_session_id,)
@@ -168,16 +167,11 @@ def success():
             existing = cursor.fetchone()
 
             if existing:
-                # Ya fue procesado — mostrar confirmación igual
+                # El webhook fue rapidísimo y ya lo creó. Solo tomamos el código.
                 codigo = existing["codigo"]
-                from blueprints.tickets.routes import generar_qr_base64
-                qr_base64 = generar_qr_base64(codigo)
             else:
-                # Crear el ticket
-                codigo    = str(uuid.uuid4())
-                from blueprints.tickets.routes import generar_qr_base64
-                qr_base64 = generar_qr_base64(codigo)
-
+                # Si el webhook se retrasó, lo creamos nosotros.
+                codigo = str(uuid.uuid4())
                 cursor.execute("""
                     INSERT INTO tickets
                     (codigo, usuario_id, evento_id, zona_id, nombre, correo, estado, stripe_session_id)
@@ -189,57 +183,63 @@ def success():
                 )
                 conn.commit()
 
-                # Obtener datos del evento para el correo
-                cursor.execute("""
-                    SELECT zev.nombre AS zona_nombre, zev.precio,
-                           e.nombre AS evento_nombre, e.imagen_url,
-                           e.fecha, e.hora
-                    FROM zonas_evento zev
-                    JOIN eventos e ON zev.evento_id = e.id
-                    WHERE zev.id = %s
-                """, (zona_id,))
-                info = cursor.fetchone()
+            # ✅ ¡SOLUCIÓN! SIEMPRE obtenemos la info del evento sin importar quién creó el ticket
+            cursor.execute("""
+                SELECT zev.nombre AS zona_nombre, zev.precio,
+                       e.nombre AS evento_nombre, e.imagen_url,
+                       e.fecha, e.hora
+                FROM zonas_evento zev
+                JOIN eventos e ON zev.evento_id = e.id
+                WHERE zev.id = %s
+            """, (zona_id,))
+            info = cursor.fetchone()
 
-                if info:
-                    # Formatear hora
-                    hora_obj = info.get("hora")
-                    if hora_obj and hasattr(hora_obj, 'total_seconds'):
-                        t = int(hora_obj.total_seconds())
-                        hora_str = f"{t//3600:02d}:{(t%3600)//60:02d}"
-                    elif hora_obj and hasattr(hora_obj, 'strftime'):
-                        hora_str = hora_obj.strftime('%H:%M')
-                    else:
-                        hora_str = "—"
+            from blueprints.tickets.routes import generar_qr_base64
+            qr_base64 = generar_qr_base64(codigo)
 
-                    fecha_obj = info.get("fecha")
-                    fecha_str = fecha_obj.strftime('%d de %B de %Y') if fecha_obj else "—"
+            if info:
+                # Formatear la hora
+                hora_obj = info.get("hora")
+                if hora_obj and hasattr(hora_obj, 'total_seconds'):
+                    t = int(hora_obj.total_seconds())
+                    hora_str = f"{t//3600:02d}:{(t%3600)//60:02d}"
+                elif hora_obj and hasattr(hora_obj, 'strftime'):
+                    hora_str = hora_obj.strftime('%H:%M')
+                else:
+                    hora_str = "—"
 
-                    from blueprints.tickets.routes import _enviar_correo_worker
-                    cfg = {
-                        "EMAIL_REMITENTE": current_app.config.get("EMAIL_REMITENTE", ""),
-                        "EMAIL_APP_PASS":  current_app.config.get("EMAIL_APP_PASS",  ""),
-                        "EMAIL_SMTP_HOST": current_app.config.get("EMAIL_SMTP_HOST", "smtp-relay.brevo.com"),
-                        "EMAIL_SMTP_USER": current_app.config.get("EMAIL_SMTP_USER", ""),
-                    }
-                    threading.Thread(
-                        target=_enviar_correo_worker,
-                        args=(cfg, correo, nombre, codigo,
-                              info["evento_nombre"], fecha_str, hora_str,
-                              info["zona_nombre"], info["precio"],
-                              info.get("imagen_url") or "", qr_base64),
-                        daemon=True
-                    ).start()
+                # Formatear la fecha
+                fecha_obj = info.get("fecha")
+                fecha_str = fecha_obj.strftime('%d de %B de %Y') if fecha_obj else "—"
 
-                    return render_template("tickets/confirmacion.html",
-                        nombre    = nombre,
-                        correo    = correo,
-                        zona      = info["zona_nombre"],
-                        precio    = info["precio"],
-                        evento    = info["evento_nombre"],
-                        codigo    = codigo,
-                        qr_base64 = qr_base64,
-                        pago_ok   = True
-                    )
+                # ✅ SIEMPRE enviamos el correo desde aquí para que el cliente lo reciba
+                from blueprints.tickets.routes import _enviar_correo_worker
+                cfg = {
+                    "EMAIL_REMITENTE": current_app.config.get("EMAIL_REMITENTE", ""),
+                    "EMAIL_APP_PASS":  current_app.config.get("EMAIL_APP_PASS",  ""),
+                    "EMAIL_SMTP_HOST": current_app.config.get("EMAIL_SMTP_HOST", "smtp-relay.brevo.com"),
+                    "EMAIL_SMTP_USER": current_app.config.get("EMAIL_SMTP_USER", ""),
+                }
+                threading.Thread(
+                    target=_enviar_correo_worker,
+                    args=(cfg, correo, nombre, codigo,
+                          info["evento_nombre"], fecha_str, hora_str,
+                          info["zona_nombre"], info["precio"],
+                          info.get("imagen_url") or "", qr_base64),
+                    daemon=True
+                ).start()
+
+                # ✅ SIEMPRE renderizamos la pantalla de éxito
+                return render_template("tickets/confirmacion.html",
+                    nombre    = nombre,
+                    correo    = correo,
+                    zona      = info["zona_nombre"],
+                    precio    = info["precio"],
+                    evento    = info["evento_nombre"],
+                    codigo    = codigo,
+                    qr_base64 = qr_base64,
+                    pago_ok   = True
+                )
 
         except mysql.connector.Error as e:
             flash(f"Error al guardar el ticket: {e}", "danger")
