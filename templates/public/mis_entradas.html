@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}Mis Entradas — SoundPass{% endblock %}
+
+{% block extra_styles %}
+  .page-wrap{ max-width:1100px; margin:0 auto; padding:40px 24px 80px; }
+
+  /* ── Header ── */
+  .page-header{ margin-bottom:36px; }
+  .page-title{ font-family:'Bebas Neue',sans-serif; font-size:2.4rem; letter-spacing:2px; margin-bottom:4px; }
+  .page-sub{ color:var(--muted); font-size:.9rem; }
+
+  /* ── Filtro de estado ── */
+  .filter-bar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px; }
+  .filter-btn{
+    padding:7px 18px; border-radius:50px; font-size:.78rem; font-weight:600;
+    border:1.5px solid var(--border); background:transparent; color:var(--muted);
+    cursor:pointer; transition:all .2s; font-family:'DM Sans',sans-serif;
+    letter-spacing:.3px;
+  }
+  .filter-btn:hover{ border-color:rgba(255,255,255,0.2); color:var(--text); }
+  .filter-btn.active{ background:var(--gold); border-color:var(--gold); color:#000; }
+
+  /* ── Grid de tickets ── */
+  .tickets-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+    gap:20px;
+  }
+
+  /* ── Tarjeta de ticket ── */
+  .ticket-card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:20px; overflow:hidden;
+    transition:transform .2s, box-shadow .2s, border-color .2s;
+    display:flex; flex-direction:column;
+  }
+  .ticket-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 16px 40px rgba(0,0,0,0.35);
+    border-color:rgba(255,255,255,0.1);
+  }
+  .ticket-card.estado-ingresado{ opacity:.7; }
+
+  /* Imagen del evento */
+  .tc-img{
+    width:100%; aspect-ratio:16/7; object-fit:cover;
+    background:#1a1a2e; display:flex; align-items:center;
+    justify-content:center; font-size:3rem; color:rgba(255,255,255,0.08);
+    flex-shrink:0; position:relative; overflow:hidden;
+  }
+  .tc-img img{ width:100%; height:100%; object-fit:cover; }
+
+  /* Badge de categoría sobre la imagen */
+  .tc-cat-badge{
+    position:absolute; top:12px; left:12px;
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:8px; font-size:.68rem;
+    font-weight:700; letter-spacing:.5px; backdrop-filter:blur(8px);
+    border:1px solid transparent;
+  }
+
+  /* Badge de estado */
+  .tc-estado{
+    position:absolute; top:12px; right:12px;
+    padding:4px 12px; border-radius:8px; font-size:.68rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+    backdrop-filter:blur(8px);
+  }
+  .estado-activo   { background:rgba(34,217,122,0.15); color:#22d97a; border:1px solid rgba(34,217,122,0.3); }
+  .estado-ingresado{ background:rgba(255,184,48,0.12);  color:#ffb830; border:1px solid rgba(255,184,48,0.25); }
+  .estado-cancelado{ background:rgba(255,85,102,0.12);  color:#ff5566; border:1px solid rgba(255,85,102,0.25); }
+
+  /* Cuerpo de la tarjeta */
+  .tc-body{ padding:18px; flex:1; display:flex; flex-direction:column; gap:12px; }
+
+  .tc-evento-nombre{
+    font-weight:700; font-size:1.05rem; line-height:1.3;
+    color:var(--text); margin:0;
+  }
+
+  .tc-meta{ display:flex; flex-direction:column; gap:5px; }
+  .tc-meta-row{
+    display:flex; align-items:center; gap:7px;
+    font-size:.8rem; color:var(--muted);
+  }
+  .tc-meta-row i{ font-size:.9rem; width:14px; text-align:center; }
+
+  .tc-zona-chip{
+    display:inline-block; padding:3px 12px; border-radius:6px;
+    font-size:.75rem; font-weight:700;
+    background:rgba(240,165,0,0.1); color:var(--gold);
+    border:1px solid rgba(240,165,0,0.2);
+  }
+
+  .tc-precio{
+    font-family:'Bebas Neue',sans-serif; font-size:1.5rem;
+    color:var(--gold); margin-top:auto;
+  }
+  .tc-precio small{ font-family:'DM Sans',sans-serif; font-size:.7rem; color:var(--muted); font-weight:400; }
+
+  /* Footer de la tarjeta */
+  .tc-footer{
+    padding:14px 18px;
+    border-top:1px solid rgba(255,255,255,0.05);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .tc-fecha-compra{ font-size:.72rem; color:#333; }
+
+  .btn-ver-qr{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:9px 18px; border-radius:10px; border:none; cursor:pointer;
+    background:linear-gradient(135deg, var(--gold), var(--gold-dk));
+    color:#000; font-weight:700; font-size:.82rem;
+    font-family:'DM Sans',sans-serif; transition:all .2s;
+  }
+  .btn-ver-qr:hover{ transform:translateY(-2px); box-shadow:0 6px 20px rgba(240,165,0,0.3); }
+  .btn-ver-qr:disabled{
+    background:#1e1e2e; color:#444; cursor:not-allowed;
+    box-shadow:none; transform:none;
+  }
+  .btn-ver-evento{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:9px 14px; border-radius:10px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+    color:var(--muted); font-size:.78rem; text-decoration:none;
+    transition:all .2s; font-family:'DM Sans',sans-serif;
+  }
+  .btn-ver-evento:hover{ border-color:rgba(255,255,255,0.15); color:var(--text); }
+
+  /* ── Empty state ── */
+  .empty-state{
+    text-align:center; padding:80px 20px;
+    border:1.5px dashed rgba(255,255,255,0.07);
+    border-radius:24px; background:rgba(255,255,255,0.015);
+  }
+  .empty-icon{ font-size:3.5rem; margin-bottom:16px; opacity:.35; }
+  .empty-title{ font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:1px; margin-bottom:8px; }
+  .empty-sub{ color:var(--muted); font-size:.9rem; margin-bottom:28px; }
+  .btn-explorar{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 28px; border-radius:12px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--gold-dk));
+    color:#000; font-weight:700; font-size:.95rem;
+    font-family:'DM Sans',sans-serif; text-decoration:none; transition:all .2s;
+  }
+  .btn-explorar:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(240,165,0,0.3); color:#000; }
+
+  /* ══════════════════════════════
+     MODAL DEL QR
+  ══════════════════════════════ */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:1000;
+    background:rgba(0,0,0,0.82); backdrop-filter:blur(8px);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px; opacity:0; pointer-events:none;
+    transition:opacity .25s;
+  }
+  .modal-overlay.open{ opacity:1; pointer-events:all; }
+
+  .modal-box{
+    background:var(--card); border:1px solid rgba(240,165,0,0.2);
+    border-radius:24px; padding:0; max-width:420px; width:100%;
+    transform:scale(.92) translateY(20px);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+    overflow:hidden;
+  }
+  .modal-overlay.open .modal-box{
+    transform:scale(1) translateY(0);
+  }
+
+  .modal-header{
+    background:linear-gradient(135deg,#1a1a2e,#0d0d1a);
+    padding:22px 24px 18px;
+    border-bottom:1px dashed rgba(255,255,255,0.06);
+    display:flex; align-items:flex-start; justify-content:space-between;
+  }
+  .modal-evento{ font-weight:700; font-size:1rem; margin-bottom:2px; }
+  .modal-zona{ color:var(--muted); font-size:.8rem; }
+  .modal-close{
+    width:32px; height:32px; border-radius:8px; border:none;
+    background:rgba(255,255,255,0.06); color:var(--muted); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1rem; flex-shrink:0; transition:all .2s; margin-left:12px;
+  }
+  .modal-close:hover{ background:rgba(255,85,102,0.15); color:#ff5566; }
+
+  .modal-body{ padding:24px; text-align:center; }
+
+  .qr-wrap{
+    display:inline-block; padding:14px; border-radius:16px;
+    background:#fff; margin-bottom:16px;
+    box-shadow:0 0 0 1px rgba(240,165,0,0.15);
+    animation:pulse-qr 2.5s ease infinite;
+  }
+  @keyframes pulse-qr{
+    0%,100%{ box-shadow:0 0 0 1px rgba(240,165,0,0.15), 0 0 0 0 rgba(240,165,0,0.2); }
+    50%     { box-shadow:0 0 0 1px rgba(240,165,0,0.25), 0 0 0 10px rgba(240,165,0,0); }
+  }
+  .qr-wrap img{ width:180px; height:180px; display:block; border-radius:6px; }
+
+  .qr-uuid{
+    font-family:'Courier New',monospace; font-size:.72rem;
+    color:#333; word-break:break-all; padding:10px 14px;
+    background:rgba(0,0,0,0.3); border-radius:8px;
+    border:1px solid #1a1a2a; margin-bottom:18px; line-height:1.6;
+  }
+
+  .modal-footer{
+    display:flex; gap:10px; justify-content:center;
+  }
+  .btn-modal-secondary{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:10px 20px; border-radius:10px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    color:var(--muted); font-size:.82rem; cursor:pointer;
+    font-family:'DM Sans',sans-serif; transition:all .2s;
+  }
+  .btn-modal-secondary:hover{ border-color:rgba(255,255,255,0.15); color:var(--text); }
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-title">
+      <i class="bi bi-ticket-perforated me-2" style="color:var(--gold)"></i>Mis Entradas
+    </div>
+    <div class="page-sub">
+      {{ tickets|length }} entrada{{ 's' if tickets|length != 1 else '' }} encontrada{{ 's' if tickets|length != 1 else '' }}
+    </div>
+  </div>
+
+  {% if tickets %}
+
+  <!-- FILTROS -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filtrar('todos', this)">Todas ({{ tickets|length }})</button>
+    <button class="filter-btn" onclick="filtrar('activo', this)">
+      Activas ({{ tickets|selectattr('estado','eq','activo')|list|length }})
+    </button>
+    <button class="filter-btn" onclick="filtrar('ingresado', this)">
+      Usadas ({{ tickets|selectattr('estado','eq','ingresado')|list|length }})
+    </button>
+    <button class="filter-btn" onclick="filtrar('cancelado', this)">
+      Canceladas ({{ tickets|selectattr('estado','eq','cancelado')|list|length }})
+    </button>
+  </div>
+
+  <!-- GRID -->
+  <div class="tickets-grid" id="tickets-grid">
+    {% for t in tickets %}
+    <div class="ticket-card estado-{{ t.estado }}" data-estado="{{ t.estado }}">
+
+      <!-- Imagen + badges -->
+      <div class="tc-img">
+        {% if t.evento_imagen %}
+          <img src="{{ t.evento_imagen }}" alt="{{ t.evento_nombre }}" loading="lazy"/>
+        {% else %}
+          {{ t.cat_icono }}
+        {% endif %}
+
+        <!-- Badge categoría -->
+        <span class="tc-cat-badge"
+              style="background:{{ t.cat_color }}22;color:{{ t.cat_color }};border-color:{{ t.cat_color }}44;">
+          {{ t.cat_icono }} {{ t.cat_nombre }}
+        </span>
+
+        <!-- Badge estado -->
+        <span class="tc-estado estado-{{ t.estado }}">
+          {% if t.estado == 'activo'    %}✓ Activo
+          {% elif t.estado == 'ingresado' %}⬡ Usado
+          {% else %}✕ Cancelado{% endif %}
+        </span>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="tc-body">
+        <p class="tc-evento-nombre">{{ t.evento_nombre }}</p>
+
+        <div class="tc-meta">
+          <div class="tc-meta-row">
+            <i class="bi bi-calendar3" style="color:var(--gold)"></i>
+            {{ t.fecha_str }} · {{ t.hora_str }} hrs
+          </div>
+          <div class="tc-meta-row">
+            <i class="bi bi-geo-alt" style="color:var(--gold)"></i>
+            {{ t.evento_lugar }}
+          </div>
+          <div class="tc-meta-row">
+            <i class="bi bi-person" style="color:var(--gold)"></i>
+            {{ t.nombre }}
+          </div>
+        </div>
+
+        <div>
+          <span class="tc-zona-chip">{{ t.zona_nombre }}</span>
+        </div>
+
+        <div class="tc-precio">
+          ${{ "%.0f"|format(t.zona_precio) }}
+          <small>/ entrada</small>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="tc-footer">
+        <div class="tc-fecha-compra">
+          <i class="bi bi-clock" style="margin-right:4px"></i>{{ t.compra_str }}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <a href="/evento/{{ t.evento_id }}" class="btn-ver-evento">
+            <i class="bi bi-arrow-up-right"></i>
+          </a>
+          <button
+            class="btn-ver-qr"
+            {% if t.estado == 'cancelado' %}disabled{% endif %}
+            onclick="abrirQR(
+              '{{ t.qr_base64 }}',
+              '{{ t.codigo }}',
+              '{{ t.evento_nombre | replace("'", "\\'") }}',
+              '{{ t.zona_nombre  | replace("'", "\\'") }}'
+            )"
+          >
+            <i class="bi bi-qr-code"></i>
+            Ver QR
+          </button>
+        </div>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+
+  <!-- EMPTY STATE -->
+  <div class="empty-state">
+    <div class="empty-icon">🎫</div>
+    <div class="empty-title">Sin entradas aún</div>
+    <p class="empty-sub">Cuando compres un ticket aparecerá aquí con su código QR.</p>
+    <a href="/" class="btn-explorar">
+      <i class="bi bi-search"></i>Explorar eventos
+    </a>
+  </div>
+
+  {% endif %}
+
+</div><!-- /page-wrap -->
+
+
+<!-- ══════════════════════════════
+     MODAL QR
+══════════════════════════════ -->
+<div class="modal-overlay" id="qr-modal" onclick="cerrarModal(event)">
+  <div class="modal-box" id="modal-box">
+
+    <div class="modal-header">
+      <div>
+        <div class="modal-evento" id="modal-evento">—</div>
+        <div class="modal-zona"   id="modal-zona">—</div>
+      </div>
+      <button class="modal-close" onclick="cerrarQR()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="qr-wrap">
+        <img id="modal-qr-img" src="" alt="Código QR" width="180" height="180"/>
+      </div>
+      <div class="qr-uuid" id="modal-uuid"></div>
+      <div class="modal-footer">
+        <button class="btn-modal-secondary" onclick="descargarQR()">
+          <i class="bi bi-download"></i>Descargar QR
+        </button>
+        <button class="btn-modal-secondary" onclick="cerrarQR()">
+          <i class="bi bi-x-circle"></i>Cerrar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Filtrar tarjetas por estado ──
+function filtrar(estado, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.ticket-card').forEach(card => {
+    const show = estado === 'todos' || card.dataset.estado === estado;
+    card.style.display = show ? '' : 'none';
+  });
+}
+
+// ── Abrir modal con QR ──
+let currentQrB64 = '';
+let currentUUID  = '';
+
+function abrirQR(qrB64, uuid, evento, zona) {
+  currentQrB64 = qrB64;
+  currentUUID  = uuid;
+
+  document.getElementById('modal-qr-img').src = `data:image/png;base64,${qrB64}`;
+  document.getElementById('modal-uuid').textContent  = uuid;
+  document.getElementById('modal-evento').textContent = evento;
+  document.getElementById('modal-zona').textContent   = zona;
+
+  document.getElementById('qr-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarQR() {
+  document.getElementById('qr-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Cerrar al hacer clic fuera del modal
+function cerrarModal(e) {
+  if (e.target === document.getElementById('qr-modal')) cerrarQR();
+}
+
+// Cerrar con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cerrarQR();
+});
+
+// ── Descargar QR como imagen PNG ──
+function descargarQR() {
+  const link    = document.createElement('a');
+  link.href     = `data:image/png;base64,${currentQrB64}`;
+  link.download = `ticket-${currentUUID.slice(0,8)}.png`;
+  link.click();
+}
+</script>
+{% endblock %}

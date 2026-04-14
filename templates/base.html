@@ -74,6 +74,7 @@
     <div class="sp-nav-links">
       {% if session.get('nombre') %}
         <span class="sp-user-name d-none d-md-inline">👋 {{ session.nombre }}</span>
+        <a href="/mis-entradas" class="sp-nav-btn"><i class="bi bi-ticket-perforated me-1"></i>Mis Entradas</a>
         {% if session.get('rol') == 'admin' %}
           <a href="/admin/" class="sp-nav-btn gold"><i class="bi bi-gear me-1"></i>Admin</a>
         {% endif %}

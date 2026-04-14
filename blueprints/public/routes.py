@@ -2,23 +2,10 @@
 from flask import render_template, request, redirect, url_for, session, flash
 from extensions import get_db
 import mysql.connector
+import io, base64, qrcode
+from decorators import login_requerido
 from . import public_bp
 
-def format_hora(hora):
-    """
-    MySQL devuelve TIME como timedelta en Python.
-    Esta función lo convierte a string 'HH:MM' seguro.
-    """
-    if hora is None:
-        return ''
-    if hasattr(hora, 'strftime'):
-        # Ya es un objeto time normal
-        return hora.strftime('%H:%M')
-    # Es un timedelta — convertir manualmente
-    total_segundos = int(hora.total_seconds())
-    horas   = total_segundos // 3600
-    minutos = (total_segundos % 3600) // 60
-    return f"{horas:02d}:{minutos:02d}"
 
 @public_bp.route("/")
 def index():
@@ -70,11 +57,6 @@ def index():
                     "eventos": []
                 }
             eventos_por_cat[slug]["eventos"].append(e)
-        # Convertir hora de timedelta a string para cada evento
-        for e in eventos:
-            e['hora_str'] = format_hora(e.get('hora'))
-            if e.get('fecha'):
-                e['fecha_str'] = e['fecha'].strftime('%d %b %Y')
 
         return render_template("public/index.html",
             categorias       = categorias,
@@ -125,10 +107,6 @@ def evento(evento_id):
         """, (evento_id,))
         zonas = cursor.fetchall()
 
-        evento['hora_str'] = format_hora(evento.get('hora'))
-        if evento.get('fecha'):
-            evento['fecha_str'] = evento['fecha'].strftime('%A, %d de %B de %Y')
-
         return render_template("public/evento.html",
             evento = evento,
             zonas  = zonas
@@ -137,6 +115,83 @@ def evento(evento_id):
     except mysql.connector.Error as e:
         flash(f"Error: {e}", "danger")
         return redirect(url_for("public.index"))
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
+
+
+def _qr_base64(codigo: str) -> str:
+    """Genera QR en memoria y devuelve Base64."""
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=7, border=3)
+    qr.add_data(codigo)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#000000", back_color="#ffffff")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode("utf-8")
+
+
+@public_bp.route("/mis-entradas")
+@login_requerido
+def mis_entradas():
+    """
+    Muestra todos los tickets del usuario logueado.
+    JOIN con eventos, categorías y zonas para mostrar
+    imagen, nombre, fecha, zona, precio y estado.
+    Genera el QR de cada ticket en memoria para el modal.
+    """
+    conn = cursor = None
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                t.id, t.codigo, t.nombre, t.correo, t.estado,
+                t.fecha_compra,
+                e.nombre       AS evento_nombre,
+                e.imagen_url   AS evento_imagen,
+                e.fecha        AS evento_fecha,
+                e.hora         AS evento_hora,
+                e.lugar        AS evento_lugar,
+                e.id           AS evento_id,
+                c.nombre       AS cat_nombre,
+                c.icono        AS cat_icono,
+                c.color        AS cat_color,
+                zev.nombre     AS zona_nombre,
+                zev.precio     AS zona_precio
+            FROM tickets t
+            JOIN eventos       e   ON t.evento_id = e.id
+            JOIN categorias    c   ON e.categoria_id = c.id
+            JOIN zonas_evento  zev ON t.zona_id = zev.id
+            WHERE t.usuario_id = %s
+            ORDER BY t.fecha_compra DESC
+        """, (session["usuario_id"],))
+
+        tickets = cursor.fetchall()
+
+        # Formatear fechas y generar QR para cada ticket
+        for t in tickets:
+            # Hora (timedelta → HH:MM)
+            h = t.get("evento_hora")
+            if h and hasattr(h, "total_seconds"):
+                s2 = int(h.total_seconds())
+                t["hora_str"] = f"{s2//3600:02d}:{(s2%3600)//60:02d}"
+            elif h and hasattr(h, "strftime"):
+                t["hora_str"] = h.strftime("%H:%M")
+            else:
+                t["hora_str"] = "—"
+
+            t["fecha_str"]   = t["evento_fecha"].strftime("%d %b %Y") if t.get("evento_fecha") else "—"
+            t["compra_str"]  = t["fecha_compra"].strftime("%d/%m/%Y %H:%M") if t.get("fecha_compra") else "—"
+            t["qr_base64"]   = _qr_base64(t["codigo"])
+
+        return render_template("public/mis_entradas.html", tickets=tickets)
+
+    except mysql.connector.Error as e:
+        flash(f"Error al cargar tus entradas: {e}", "danger")
+        return render_template("public/mis_entradas.html", tickets=[])
     finally:
         if cursor: cursor.close()
         if conn:   conn.close()
