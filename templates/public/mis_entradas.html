@@ -146,7 +146,7 @@
   .btn-explorar:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(240,165,0,0.3); color:#000; }
 
   /* ══════════════════════════════
-     MODAL DEL QR
+     ESTILOS DEL MODAL TICKET
   ══════════════════════════════ */
   .modal-overlay{
     position:fixed; inset:0; z-index:1000;
@@ -156,58 +156,6 @@
     transition:opacity .25s;
   }
   .modal-overlay.open{ opacity:1; pointer-events:all; }
-
-  .modal-box{
-    background:var(--card); border:1px solid rgba(240,165,0,0.2);
-    border-radius:24px; padding:0; max-width:420px; width:100%;
-    transform:scale(.92) translateY(20px);
-    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-    overflow:hidden;
-  }
-  .modal-overlay.open .modal-box{
-    transform:scale(1) translateY(0);
-  }
-
-  .modal-header{
-    background:linear-gradient(135deg,#1a1a2e,#0d0d1a);
-    padding:22px 24px 18px;
-    border-bottom:1px dashed rgba(255,255,255,0.06);
-    display:flex; align-items:flex-start; justify-content:space-between;
-  }
-  .modal-evento{ font-weight:700; font-size:1rem; margin-bottom:2px; }
-  .modal-zona{ color:var(--muted); font-size:.8rem; }
-  .modal-close{
-    width:32px; height:32px; border-radius:8px; border:none;
-    background:rgba(255,255,255,0.06); color:var(--muted); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    font-size:1rem; flex-shrink:0; transition:all .2s; margin-left:12px;
-  }
-  .modal-close:hover{ background:rgba(255,85,102,0.15); color:#ff5566; }
-
-  .modal-body{ padding:24px; text-align:center; }
-
-  .qr-wrap{
-    display:inline-block; padding:14px; border-radius:16px;
-    background:#fff; margin-bottom:16px;
-    box-shadow:0 0 0 1px rgba(240,165,0,0.15);
-    animation:pulse-qr 2.5s ease infinite;
-  }
-  @keyframes pulse-qr{
-    0%,100%{ box-shadow:0 0 0 1px rgba(240,165,0,0.15), 0 0 0 0 rgba(240,165,0,0.2); }
-    50%     { box-shadow:0 0 0 1px rgba(240,165,0,0.25), 0 0 0 10px rgba(240,165,0,0); }
-  }
-  .qr-wrap img{ width:180px; height:180px; display:block; border-radius:6px; }
-
-  .qr-uuid{
-    font-family:'Courier New',monospace; font-size:.72rem;
-    color:#333; word-break:break-all; padding:10px 14px;
-    background:rgba(0,0,0,0.3); border-radius:8px;
-    border:1px solid #1a1a2a; margin-bottom:18px; line-height:1.6;
-  }
-
-  .modal-footer{
-    display:flex; gap:10px; justify-content:center;
-  }
   .btn-modal-secondary{
     display:inline-flex; align-items:center; gap:7px;
     padding:10px 20px; border-radius:10px;
@@ -221,7 +169,6 @@
 {% block content %}
 <div class="page-wrap">
 
-  <!-- HEADER -->
   <div class="page-header">
     <div class="page-title">
       <i class="bi bi-ticket-perforated me-2" style="color:var(--gold)"></i>Mis Entradas
@@ -233,7 +180,6 @@
 
   {% if tickets %}
 
-  <!-- FILTROS -->
   <div class="filter-bar">
     <button class="filter-btn active" onclick="filtrar('todos', this)">Todas ({{ tickets|length }})</button>
     <button class="filter-btn" onclick="filtrar('activo', this)">
@@ -247,12 +193,10 @@
     </button>
   </div>
 
-  <!-- GRID -->
   <div class="tickets-grid" id="tickets-grid">
     {% for t in tickets %}
     <div class="ticket-card estado-{{ t.estado }}" data-estado="{{ t.estado }}">
 
-      <!-- Imagen + badges -->
       <div class="tc-img">
         {% if t.evento_imagen %}
           <img src="{{ t.evento_imagen }}" alt="{{ t.evento_nombre }}" loading="lazy"/>
@@ -260,13 +204,11 @@
           {{ t.cat_icono }}
         {% endif %}
 
-        <!-- Badge categoría -->
         <span class="tc-cat-badge"
               style="background:{{ t.cat_color }}22;color:{{ t.cat_color }};border-color:{{ t.cat_color }}44;">
           {{ t.cat_icono }} {{ t.cat_nombre }}
         </span>
 
-        <!-- Badge estado -->
         <span class="tc-estado estado-{{ t.estado }}">
           {% if t.estado == 'activo'    %}✓ Activo
           {% elif t.estado == 'ingresado' %}⬡ Usado
@@ -274,7 +216,6 @@
         </span>
       </div>
 
-      <!-- Cuerpo -->
       <div class="tc-body">
         <p class="tc-evento-nombre">{{ t.evento_nombre }}</p>
 
@@ -303,7 +244,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="tc-footer">
         <div class="tc-fecha-compra">
           <i class="bi bi-clock" style="margin-right:4px"></i>{{ t.compra_str }}
@@ -337,7 +277,6 @@
 
   {% else %}
 
-  <!-- EMPTY STATE -->
   <div class="empty-state">
     <div class="empty-icon">🎫</div>
     <div class="empty-title">Sin entradas aún</div>
@@ -349,70 +288,64 @@
 
   {% endif %}
 
-</div><!-- /page-wrap -->
-
-
-<!-- ══════════════════════════════
-     MODAL QR
-══════════════════════════════ -->
-<div class="modal-overlay" id="qr-modal" onclick="cerrarModal(event)">
-  <div class="modal-box" id="modal-box" style="background:transparent; border:none; max-width:440px;">
+</div><div class="modal-overlay" id="qr-modal" onclick="cerrarModal(event)">
+  
+  <div class="modal-box" id="modal-box" style="background:transparent; border:none; width:95%; max-width:380px; max-height:90vh; overflow-y:auto; overflow-x:hidden;">
     
-    <div id="ticket-visual" style="background:var(--card); border:1px solid rgba(240,165,0,0.2); border-radius:24px; padding:35px 30px; position:relative; overflow:hidden;">
+    <div id="ticket-visual" style="background:var(--card); border:1px solid rgba(240,165,0,0.2); border-radius:20px; padding:24px 20px; position:relative; overflow:hidden; margin:0 auto;">
       
-      <div style="text-align:center; border-bottom:1px dashed rgba(255,255,255,0.15); padding-bottom:20px; margin-bottom:24px;">
-        <div style="background:#1a1a2e; border:2px solid var(--gold); width:64px; height:64px; border-radius:50%; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(240,165,0,0.2);">
-          <i class="bi bi-ticket-perforated" style="color:#ff5566; font-size:1.6rem;"></i>
+      <div style="text-align:center; border-bottom:1px dashed rgba(255,255,255,0.15); padding-bottom:16px; margin-bottom:18px;">
+        <div style="background:#1a1a2e; border:2px solid var(--gold); width:48px; height:48px; border-radius:50%; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(240,165,0,0.2);">
+          <i class="bi bi-ticket-perforated" style="color:#ff5566; font-size:1.3rem;"></i>
         </div>
-        <h2 style="color:var(--gold); font-family:'Bebas Neue',sans-serif; letter-spacing:2px; margin-bottom:6px; font-size:2rem;">¡TICKET CONFIRMADO!</h2>
-        <p style="color:var(--muted); font-size:0.85rem; margin:0;" id="modal-evento-sub">—</p>
+        <h2 style="color:var(--gold); font-family:'Bebas Neue',sans-serif; letter-spacing:1.5px; margin-bottom:4px; font-size:1.7rem;">¡TICKET CONFIRMADO!</h2>
+        <p style="color:var(--muted); font-size:0.75rem; margin:0; line-height:1.2;" id="modal-evento-sub">—</p>
       </div>
 
-      <div style="display:grid; grid-template-columns:80px 1fr; gap:16px; font-size:0.85rem; margin-bottom:28px;">
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:2px;">EVENTO</div>
-        <div id="modal-evento" style="text-align:right; font-weight:700; color:var(--text);">—</div>
+      <div style="display:grid; grid-template-columns:70px 1fr; gap:12px; font-size:0.8rem; margin-bottom:20px; align-items:center;">
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">EVENTO</div>
+        <div id="modal-evento" style="text-align:right; font-weight:700; color:var(--text); line-height:1.2;">—</div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:2px;">NOMBRE</div>
-        <div id="modal-nombre" style="text-align:right; font-weight:700; color:var(--text);">—</div>
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">NOMBRE</div>
+        <div id="modal-nombre" style="text-align:right; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:2px;">CORREO</div>
-        <div id="modal-correo" style="text-align:right; font-weight:700; color:var(--text);">—</div>
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">CORREO</div>
+        <div id="modal-correo" style="text-align:right; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:4px;">ZONA</div>
-        <div style="text-align:right;"><span class="tc-zona-chip" id="modal-zona" style="font-size:0.85rem; padding:4px 14px;">—</span></div>
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">ZONA</div>
+        <div style="text-align:right;"><span class="tc-zona-chip" id="modal-zona" style="font-size:0.75rem; padding:3px 10px;">—</span></div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:8px;">PRECIO</div>
-        <div id="modal-precio" style="text-align:right; color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:1px;">—</div>
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">PRECIO</div>
+        <div id="modal-precio" style="text-align:right; color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:1px;">—</div>
       </div>
 
-      <div style="border:1.5px dashed rgba(240,165,0,0.3); border-radius:20px; padding:24px; text-align:center; margin-bottom:24px; background:rgba(0,0,0,0.2);">
-        <div style="color:var(--muted); font-size:0.75rem; letter-spacing:1.5px; font-weight:700; margin-bottom:16px;">
-          <i class="bi bi-qr-code" style="margin-right:5px;"></i>TU CÓDIGO QR DE ACCESO
+      <div style="border:1.5px dashed rgba(240,165,0,0.3); border-radius:16px; padding:16px; text-align:center; margin-bottom:16px; background:rgba(0,0,0,0.2);">
+        <div style="color:var(--muted); font-size:0.7rem; letter-spacing:1px; font-weight:700; margin-bottom:12px;">
+          <i class="bi bi-qr-code" style="margin-right:5px;"></i>TU CÓDIGO QR
         </div>
-        <div class="qr-wrap" style="animation:none; margin-bottom:12px; padding:12px; display:inline-block; background:#fff; border-radius:12px; box-shadow:none;">
-          <img id="modal-qr-img" src="" style="width:170px; height:170px; display:block;" />
+        <div style="background:#fff; padding:10px; border-radius:10px; display:inline-block; margin-bottom:10px;">
+          <img id="modal-qr-img" src="" style="width:140px; height:140px; display:block; object-fit:contain;" crossorigin="anonymous"/>
         </div>
-        <div style="color:var(--muted); font-family:'Courier New',monospace; font-size:0.7rem; letter-spacing:0.5px;" id="modal-uuid">—</div>
+        <div style="color:var(--muted); font-family:'Courier New',monospace; font-size:0.65rem; letter-spacing:0px; word-break:break-all;" id="modal-uuid">—</div>
       </div>
 
-      <div style="text-align:center; color:var(--muted); font-size:0.75rem;">
-        <i class="bi bi-shield-check" style="color:var(--gold); margin-right:4px;"></i> Presenta el QR en la entrada · Un solo uso · No compartas
+      <div style="text-align:center; color:var(--muted); font-size:0.7rem;">
+        <i class="bi bi-shield-check" style="color:var(--gold); margin-right:4px;"></i> Presenta el QR en la entrada · Un solo uso
       </div>
-    </div> <div class="modal-footer" style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; border:none;">
-      <button class="btn-modal-secondary" onclick="descargarTicket()" id="btn-descargar">
+    </div> <div class="modal-footer" style="margin-top:16px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; border:none; padding-bottom:10px;">
+      <button class="btn-modal-secondary" onclick="descargarTicket()" id="btn-descargar" style="padding:8px 14px; font-size:0.75rem;">
         <i class="bi bi-download"></i>Descargar Ticket
       </button>
-      <button class="btn-modal-secondary" onclick="reenviarCorreo()" id="btn-reenviar">
+      <button class="btn-modal-secondary" onclick="reenviarCorreo()" id="btn-reenviar" style="padding:8px 14px; font-size:0.75rem;">
         <i class="bi bi-envelope"></i>Reenviar Correo
       </button>
-      <button class="btn-modal-secondary" onclick="cerrarQR()" style="border-color:rgba(255,85,102,0.3); color:#ff6b7a;">
+      <button class="btn-modal-secondary" onclick="cerrarQR()" style="padding:8px 14px; font-size:0.75rem; border-color:rgba(255,85,102,0.3); color:#ff6b7a;">
         <i class="bi bi-x-circle"></i>Cerrar
       </button>
     </div>
 
   </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -445,7 +378,7 @@ function abrirQR(qrB64, uuid, evento, zona, nombre, correo, precio) {
   document.getElementById('modal-correo').textContent = correo;
   document.getElementById('modal-precio').textContent = '$' + precio;
 
-  // Resetear botón de correo por si se usó antes
+  // Resetear botón de correo
   const btnReenviar = document.getElementById('btn-reenviar');
   btnReenviar.innerHTML = '<i class="bi bi-envelope"></i>Reenviar Correo';
   btnReenviar.disabled = false;
@@ -476,7 +409,9 @@ function descargarTicket() {
   
   html2canvas(ticketVisual, { 
     backgroundColor: '#080810',
-    scale: 2 // Mayor calidad de imagen
+    scale: 2,
+    useCORS: true,
+    allowTaint: true
   }).then(canvas => {
     const link = document.createElement('a');
     link.download = `Ticket-SoundPass-${currentUUID.slice(0,8)}.png`;
@@ -488,6 +423,10 @@ function descargarTicket() {
       btn.innerHTML = '<i class="bi bi-download"></i>Descargar Ticket';
       btn.disabled = false;
     }, 2000);
+  }).catch(err => {
+    console.error("Error al generar el ticket:", err);
+    btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Error';
+    btn.disabled = false;
   });
 }
 

@@ -223,7 +223,7 @@ def reenviar_ticket(codigo):
         if not info:
             return jsonify({"status": "error", "message": "Ticket no encontrado"}), 404
 
-        # 2. Formatear fechas y hora (igual que en el checkout)
+        # 2. Formatear fechas y hora
         hora_obj = info.get("hora")
         if hora_obj and hasattr(hora_obj, 'total_seconds'):
             t_sec = int(hora_obj.total_seconds())
@@ -236,11 +236,11 @@ def reenviar_ticket(codigo):
         fecha_obj = info.get("fecha")
         fecha_str = fecha_obj.strftime('%d de %B de %Y') if fecha_obj else "—"
 
-        # 3. Generar el QR de nuevo
+        # 3. Generar el QR
         from blueprints.tickets.routes import generar_qr_base64, _enviar_correo_worker
         qr_base64 = generar_qr_base64(codigo)
 
-        # 4. Configuración del correo
+        # 4. Configurar el correo
         cfg = {
             "EMAIL_REMITENTE": current_app.config.get("EMAIL_REMITENTE", ""),
             "EMAIL_APP_PASS":  current_app.config.get("EMAIL_APP_PASS",  ""),
@@ -248,7 +248,7 @@ def reenviar_ticket(codigo):
             "EMAIL_SMTP_USER": current_app.config.get("EMAIL_SMTP_USER", ""),
         }
 
-        # 5. Disparar el hilo del correo
+        # 5. Enviar el correo en segundo plano
         threading.Thread(
             target=_enviar_correo_worker,
             args=(cfg, info["correo"], info["nombre"], codigo,
