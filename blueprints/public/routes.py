@@ -1,6 +1,7 @@
 """blueprints/public/routes.py"""
-from flask import render_template, request, redirect, url_for, session, flash
+from flask import render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from extensions import get_db
+import threading
 import mysql.connector
 import io, base64, qrcode
 from decorators import login_requerido
@@ -192,6 +193,76 @@ def mis_entradas():
     except mysql.connector.Error as e:
         flash(f"Error al cargar tus entradas: {e}", "danger")
         return render_template("public/mis_entradas.html", tickets=[])
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
+
+@public_bp.route("/reenviar-ticket/<codigo>", methods=["POST"])
+@login_requerido
+def reenviar_ticket(codigo):
+    """
+    Ruta para reenviar el correo de confirmación de un ticket existente.
+    """
+    conn = cursor = None
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Buscar el ticket (y verificar que pertenece al usuario logueado)
+        cursor.execute("""
+            SELECT t.codigo, t.nombre, t.correo,
+                   e.nombre AS evento_nombre, e.imagen_url, e.fecha, e.hora,
+                   zev.nombre AS zona_nombre, zev.precio
+            FROM tickets t
+            JOIN eventos e ON t.evento_id = e.id
+            JOIN zonas_evento zev ON t.zona_id = zev.id
+            WHERE t.codigo = %s AND t.usuario_id = %s
+        """, (codigo, session["usuario_id"]))
+        info = cursor.fetchone()
+
+        if not info:
+            return jsonify({"status": "error", "message": "Ticket no encontrado"}), 404
+
+        # 2. Formatear fechas y hora (igual que en el checkout)
+        hora_obj = info.get("hora")
+        if hora_obj and hasattr(hora_obj, 'total_seconds'):
+            t_sec = int(hora_obj.total_seconds())
+            hora_str = f"{t_sec//3600:02d}:{(t_sec%3600)//60:02d}"
+        elif hora_obj and hasattr(hora_obj, 'strftime'):
+            hora_str = hora_obj.strftime('%H:%M')
+        else:
+            hora_str = "—"
+
+        fecha_obj = info.get("fecha")
+        fecha_str = fecha_obj.strftime('%d de %B de %Y') if fecha_obj else "—"
+
+        # 3. Generar el QR de nuevo
+        from blueprints.tickets.routes import generar_qr_base64, _enviar_correo_worker
+        qr_base64 = generar_qr_base64(codigo)
+
+        # 4. Configuración del correo
+        cfg = {
+            "EMAIL_REMITENTE": current_app.config.get("EMAIL_REMITENTE", ""),
+            "EMAIL_APP_PASS":  current_app.config.get("EMAIL_APP_PASS",  ""),
+            "EMAIL_SMTP_HOST": current_app.config.get("EMAIL_SMTP_HOST", "smtp-relay.brevo.com"),
+            "EMAIL_SMTP_USER": current_app.config.get("EMAIL_SMTP_USER", ""),
+        }
+
+        # 5. Disparar el hilo del correo
+        threading.Thread(
+            target=_enviar_correo_worker,
+            args=(cfg, info["correo"], info["nombre"], codigo,
+                  info["evento_nombre"], fecha_str, hora_str,
+                  info["zona_nombre"], info["precio"],
+                  info.get("imagen_url") or "", qr_base64),
+            daemon=True
+        ).start()
+
+        return jsonify({"status": "ok"}), 200
+
+    except Exception as e:
+        print(f"[RE-ENVIO ERROR] {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if cursor: cursor.close()
         if conn:   conn.close()

@@ -319,11 +319,14 @@
               '{{ t.qr_base64 }}',
               '{{ t.codigo }}',
               '{{ t.evento_nombre | replace("'", "\\'") }}',
-              '{{ t.zona_nombre  | replace("'", "\\'") }}'
+              '{{ t.zona_nombre  | replace("'", "\\'") }}',
+              '{{ t.nombre | replace("'", "\\'") }}',
+              '{{ t.correo | replace("'", "\\'") }}',
+              '{{ "%.2f"|format(t.zona_precio) }}'
             )"
           >
-            <i class="bi bi-qr-code"></i>
-            Ver QR
+            <i class="bi bi-ticket-detailed"></i>
+            Ver Ticket
           </button>
         </div>
       </div>
@@ -353,31 +356,58 @@
      MODAL QR
 ══════════════════════════════ -->
 <div class="modal-overlay" id="qr-modal" onclick="cerrarModal(event)">
-  <div class="modal-box" id="modal-box">
-
-    <div class="modal-header">
-      <div>
-        <div class="modal-evento" id="modal-evento">—</div>
-        <div class="modal-zona"   id="modal-zona">—</div>
+  <div class="modal-box" id="modal-box" style="background:transparent; border:none; max-width:440px;">
+    
+    <div id="ticket-visual" style="background:var(--card); border:1px solid rgba(240,165,0,0.2); border-radius:24px; padding:35px 30px; position:relative; overflow:hidden;">
+      
+      <div style="text-align:center; border-bottom:1px dashed rgba(255,255,255,0.15); padding-bottom:20px; margin-bottom:24px;">
+        <div style="background:#1a1a2e; border:2px solid var(--gold); width:64px; height:64px; border-radius:50%; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(240,165,0,0.2);">
+          <i class="bi bi-ticket-perforated" style="color:#ff5566; font-size:1.6rem;"></i>
+        </div>
+        <h2 style="color:var(--gold); font-family:'Bebas Neue',sans-serif; letter-spacing:2px; margin-bottom:6px; font-size:2rem;">¡TICKET CONFIRMADO!</h2>
+        <p style="color:var(--muted); font-size:0.85rem; margin:0;" id="modal-evento-sub">—</p>
       </div>
-      <button class="modal-close" onclick="cerrarQR()">
-        <i class="bi bi-x-lg"></i>
+
+      <div style="display:grid; grid-template-columns:80px 1fr; gap:16px; font-size:0.85rem; margin-bottom:28px;">
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:2px;">EVENTO</div>
+        <div id="modal-evento" style="text-align:right; font-weight:700; color:var(--text);">—</div>
+        
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:2px;">NOMBRE</div>
+        <div id="modal-nombre" style="text-align:right; font-weight:700; color:var(--text);">—</div>
+        
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:2px;">CORREO</div>
+        <div id="modal-correo" style="text-align:right; font-weight:700; color:var(--text);">—</div>
+        
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:4px;">ZONA</div>
+        <div style="text-align:right;"><span class="tc-zona-chip" id="modal-zona" style="font-size:0.85rem; padding:4px 14px;">—</span></div>
+        
+        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem; padding-top:8px;">PRECIO</div>
+        <div id="modal-precio" style="text-align:right; color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:1px;">—</div>
+      </div>
+
+      <div style="border:1.5px dashed rgba(240,165,0,0.3); border-radius:20px; padding:24px; text-align:center; margin-bottom:24px; background:rgba(0,0,0,0.2);">
+        <div style="color:var(--muted); font-size:0.75rem; letter-spacing:1.5px; font-weight:700; margin-bottom:16px;">
+          <i class="bi bi-qr-code" style="margin-right:5px;"></i>TU CÓDIGO QR DE ACCESO
+        </div>
+        <div class="qr-wrap" style="animation:none; margin-bottom:12px; padding:12px; display:inline-block; background:#fff; border-radius:12px; box-shadow:none;">
+          <img id="modal-qr-img" src="" style="width:170px; height:170px; display:block;" />
+        </div>
+        <div style="color:var(--muted); font-family:'Courier New',monospace; font-size:0.7rem; letter-spacing:0.5px;" id="modal-uuid">—</div>
+      </div>
+
+      <div style="text-align:center; color:var(--muted); font-size:0.75rem;">
+        <i class="bi bi-shield-check" style="color:var(--gold); margin-right:4px;"></i> Presenta el QR en la entrada · Un solo uso · No compartas
+      </div>
+    </div> <div class="modal-footer" style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; border:none;">
+      <button class="btn-modal-secondary" onclick="descargarTicket()" id="btn-descargar">
+        <i class="bi bi-download"></i>Descargar Ticket
       </button>
-    </div>
-
-    <div class="modal-body">
-      <div class="qr-wrap">
-        <img id="modal-qr-img" src="" alt="Código QR" width="180" height="180"/>
-      </div>
-      <div class="qr-uuid" id="modal-uuid"></div>
-      <div class="modal-footer">
-        <button class="btn-modal-secondary" onclick="descargarQR()">
-          <i class="bi bi-download"></i>Descargar QR
-        </button>
-        <button class="btn-modal-secondary" onclick="cerrarQR()">
-          <i class="bi bi-x-circle"></i>Cerrar
-        </button>
-      </div>
+      <button class="btn-modal-secondary" onclick="reenviarCorreo()" id="btn-reenviar">
+        <i class="bi bi-envelope"></i>Reenviar Correo
+      </button>
+      <button class="btn-modal-secondary" onclick="cerrarQR()" style="border-color:rgba(255,85,102,0.3); color:#ff6b7a;">
+        <i class="bi bi-x-circle"></i>Cerrar
+      </button>
     </div>
 
   </div>
@@ -386,6 +416,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 // ── Filtrar tarjetas por estado ──
 function filtrar(estado, btn) {
@@ -398,18 +429,26 @@ function filtrar(estado, btn) {
   });
 }
 
-// ── Abrir modal con QR ──
-let currentQrB64 = '';
-let currentUUID  = '';
+// ── Variables globales del modal ──
+let currentUUID = '';
 
-function abrirQR(qrB64, uuid, evento, zona) {
-  currentQrB64 = qrB64;
-  currentUUID  = uuid;
+// ── Abrir modal y popular datos ──
+function abrirQR(qrB64, uuid, evento, zona, nombre, correo, precio) {
+  currentUUID = uuid;
 
   document.getElementById('modal-qr-img').src = `data:image/png;base64,${qrB64}`;
-  document.getElementById('modal-uuid').textContent  = uuid;
+  document.getElementById('modal-uuid').textContent = uuid;
   document.getElementById('modal-evento').textContent = evento;
-  document.getElementById('modal-zona').textContent   = zona;
+  document.getElementById('modal-evento-sub').textContent = evento + ' · Entrada válida para 1 persona';
+  document.getElementById('modal-zona').textContent = zona;
+  document.getElementById('modal-nombre').textContent = nombre;
+  document.getElementById('modal-correo').textContent = correo;
+  document.getElementById('modal-precio').textContent = '$' + precio;
+
+  // Resetear botón de correo por si se usó antes
+  const btnReenviar = document.getElementById('btn-reenviar');
+  btnReenviar.innerHTML = '<i class="bi bi-envelope"></i>Reenviar Correo';
+  btnReenviar.disabled = false;
 
   document.getElementById('qr-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -420,22 +459,62 @@ function cerrarQR() {
   document.body.style.overflow = '';
 }
 
-// Cerrar al hacer clic fuera del modal
 function cerrarModal(e) {
   if (e.target === document.getElementById('qr-modal')) cerrarQR();
 }
-
-// Cerrar con Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') cerrarQR();
 });
 
-// ── Descargar QR como imagen PNG ──
-function descargarQR() {
-  const link    = document.createElement('a');
-  link.href     = `data:image/png;base64,${currentQrB64}`;
-  link.download = `ticket-${currentUUID.slice(0,8)}.png`;
-  link.click();
+// ── Descargar Ticket Completo (html2canvas) ──
+function descargarTicket() {
+  const btn = document.getElementById('btn-descargar');
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>Generando...';
+  btn.disabled = true;
+
+  const ticketVisual = document.getElementById('ticket-visual');
+  
+  html2canvas(ticketVisual, { 
+    backgroundColor: '#080810',
+    scale: 2 // Mayor calidad de imagen
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `Ticket-SoundPass-${currentUUID.slice(0,8)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    btn.innerHTML = '<i class="bi bi-check-circle" style="color:#22d97a"></i>¡Descargado!';
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-download"></i>Descargar Ticket';
+      btn.disabled = false;
+    }, 2000);
+  });
+}
+
+// ── Reenviar Correo (Llamada al backend) ──
+function reenviarCorreo() {
+  const btn = document.getElementById('btn-reenviar');
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>Enviando...';
+  btn.disabled = true;
+
+  fetch(`/reenviar-ticket/${currentUUID}`, { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        btn.innerHTML = '<i class="bi bi-check-circle" style="color:#22d97a"></i>¡Enviado!';
+      } else {
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle" style="color:#ffb830"></i>Error';
+      }
+    })
+    .catch(err => {
+      btn.innerHTML = '<i class="bi bi-exclamation-triangle" style="color:#ffb830"></i>Error';
+    })
+    .finally(() => {
+      setTimeout(() => {
+        btn.innerHTML = '<i class="bi bi-envelope"></i>Reenviar Correo';
+        btn.disabled = false;
+      }, 3000);
+    });
 }
 </script>
 {% endblock %}
