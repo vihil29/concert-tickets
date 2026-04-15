@@ -164,6 +164,22 @@
     font-family:'DM Sans',sans-serif; transition:all .2s;
   }
   .btn-modal-secondary:hover{ border-color:rgba(255,255,255,0.15); color:var(--text); }
+
+  /* Ajustes responsivos para el ticket apaisado */
+  @media (max-width: 768px) {
+    #ticket-visual {
+      flex-direction: column !important;
+      min-width: 100% !important;
+    }
+    .ticket-left-side {
+      border-right: none !important;
+      border-bottom: 2px dashed rgba(255,255,255,0.15) !important;
+    }
+    .ticket-right-side {
+      width: 100% !important;
+      padding: 20px !important;
+    }
+  }
 {% endblock %}
 
 {% block content %}
@@ -290,57 +306,65 @@
 
 </div><div class="modal-overlay" id="qr-modal" onclick="cerrarModal(event)">
   
-  <div class="modal-box" id="modal-box" style="background:transparent; border:none; width:95%; max-width:380px; max-height:90vh; overflow-y:auto; overflow-x:hidden;">
+  <div class="modal-box" id="modal-box" style="background:transparent; border:none; width:95%; max-width:750px; overflow-y:auto; max-height: 95vh; padding-bottom:15px;">
     
-    <div id="ticket-visual" style="background:var(--card); border:1px solid rgba(240,165,0,0.2); border-radius:20px; padding:24px 20px; position:relative; overflow:hidden; margin:0 auto;">
+    <div id="ticket-visual" style="background:var(--card); border:1px solid rgba(240,165,0,0.2); border-radius:20px; display:flex; flex-direction:row; overflow:hidden; position:relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); min-width: 100%; margin: 0 auto;">
       
-      <div style="text-align:center; border-bottom:1px dashed rgba(255,255,255,0.15); padding-bottom:16px; margin-bottom:18px;">
-        <div style="background:#1a1a2e; border:2px solid var(--gold); width:48px; height:48px; border-radius:50%; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(240,165,0,0.2);">
-          <i class="bi bi-ticket-perforated" style="color:#ff5566; font-size:1.3rem;"></i>
+      <div class="ticket-left-side" style="flex:1; padding:30px; border-right:2px dashed rgba(255,255,255,0.15);">
+        
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:24px;">
+          <div style="background:#1a1a2e; border:2px solid var(--gold); width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(240,165,0,0.2); flex-shrink: 0;">
+            <i class="bi bi-ticket-perforated" style="color:#ff5566; font-size:1.4rem;"></i>
+          </div>
+          <div>
+            <h2 style="color:var(--gold); font-family:'Bebas Neue',sans-serif; letter-spacing:1.5px; margin:0; font-size:1.8rem; line-height:1.1;">¡TICKET CONFIRMADO!</h2>
+            <p style="color:var(--muted); font-size:0.8rem; margin:0; line-height:1.2;" id="modal-evento-sub">—</p>
+          </div>
         </div>
-        <h2 style="color:var(--gold); font-family:'Bebas Neue',sans-serif; letter-spacing:1.5px; margin-bottom:4px; font-size:1.7rem;">¡TICKET CONFIRMADO!</h2>
-        <p style="color:var(--muted); font-size:0.75rem; margin:0; line-height:1.2;" id="modal-evento-sub">—</p>
+
+        <div style="display:grid; grid-template-columns:80px 1fr; gap:14px; font-size:0.85rem; align-items:center;">
+          <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem;">EVENTO</div>
+          <div id="modal-evento" style="font-weight:700; color:var(--text); line-height:1.2;">—</div>
+          
+          <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem;">NOMBRE</div>
+          <div id="modal-nombre" style="font-weight:700; color:var(--text); word-break: break-word;">—</div>
+          
+          <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem;">CORREO</div>
+          <div id="modal-correo" style="font-weight:700; color:var(--text); word-break: break-all;">—</div>
+          
+          <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem;">ZONA</div>
+          <div><span class="tc-zona-chip" id="modal-zona" style="font-size:0.8rem; padding:4px 12px;">—</span></div>
+          
+          <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.75rem;">PRECIO</div>
+          <div id="modal-precio" style="color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:1px;">—</div>
+        </div>
       </div>
 
-      <div style="display:grid; grid-template-columns:70px 1fr; gap:12px; font-size:0.8rem; margin-bottom:20px; align-items:center;">
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">EVENTO</div>
-        <div id="modal-evento" style="text-align:right; font-weight:700; color:var(--text); line-height:1.2;">—</div>
+      <div class="ticket-right-side" style="width:260px; background:rgba(0,0,0,0.2); padding:30px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+        <div style="color:var(--muted); font-size:0.75rem; letter-spacing:1px; font-weight:700; margin-bottom:15px;">
+          <i class="bi bi-qr-code" style="margin-right:5px;"></i>QR DE ACCESO
+        </div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">NOMBRE</div>
-        <div id="modal-nombre" style="text-align:right; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
+        <div style="background:#ffffff; padding:12px; border-radius:12px; display:inline-block; margin-bottom:15px; width:164px; height:164px;">
+          <img id="modal-qr-img" src="" style="width:140px; height:140px; display:block;" />
+        </div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">CORREO</div>
-        <div id="modal-correo" style="text-align:right; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
+        <div style="color:var(--muted); font-family:'Courier New',monospace; font-size:0.65rem; letter-spacing:0px; word-break:break-all; line-height:1.4;" id="modal-uuid">—</div>
         
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">ZONA</div>
-        <div style="text-align:right;"><span class="tc-zona-chip" id="modal-zona" style="font-size:0.75rem; padding:3px 10px;">—</span></div>
-        
-        <div style="color:var(--muted); font-weight:600; letter-spacing:1px; font-size:0.7rem;">PRECIO</div>
-        <div id="modal-precio" style="text-align:right; color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:1px;">—</div>
+        <div style="margin-top:auto; color:var(--muted); font-size:0.65rem; padding-top:15px;">
+          <i class="bi bi-shield-check" style="color:var(--gold);"></i> Un solo uso
+        </div>
       </div>
 
-      <div style="border:1.5px dashed rgba(240,165,0,0.3); border-radius:16px; padding:16px; text-align:center; margin-bottom:16px; background:rgba(0,0,0,0.2);">
-        <div style="color:var(--muted); font-size:0.7rem; letter-spacing:1px; font-weight:700; margin-bottom:12px;">
-          <i class="bi bi-qr-code" style="margin-right:5px;"></i>TU CÓDIGO QR
-        </div>
-        <div style="background:#fff; padding:10px; border-radius:10px; display:inline-block; margin-bottom:10px;">
-          <img id="modal-qr-img" src="" style="width:140px; height:140px; display:block; object-fit:contain;" crossorigin="anonymous"/>
-        </div>
-        <div style="color:var(--muted); font-family:'Courier New',monospace; font-size:0.65rem; letter-spacing:0px; word-break:break-all;" id="modal-uuid">—</div>
-      </div>
-
-      <div style="text-align:center; color:var(--muted); font-size:0.7rem;">
-        <i class="bi bi-shield-check" style="color:var(--gold); margin-right:4px;"></i> Presenta el QR en la entrada · Un solo uso
-      </div>
-    </div> <div class="modal-footer" style="margin-top:16px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; border:none; padding-bottom:10px;">
-      <button class="btn-modal-secondary" onclick="descargarTicket()" id="btn-descargar" style="padding:8px 14px; font-size:0.75rem;">
-        <i class="bi bi-download"></i>Descargar Ticket
+    </div> <div class="modal-footer" style="margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; border:none;">
+      <button class="btn-modal-secondary" onclick="descargarTicket()" id="btn-descargar">
+        <i class="bi bi-download"></i>Descargar
       </button>
-      <button class="btn-modal-secondary" onclick="reenviarCorreo()" id="btn-reenviar" style="padding:8px 14px; font-size:0.75rem;">
-        <i class="bi bi-envelope"></i>Reenviar Correo
-      </button>
-      <button class="btn-modal-secondary" onclick="cerrarQR()" style="padding:8px 14px; font-size:0.75rem; border-color:rgba(255,85,102,0.3); color:#ff6b7a;">
+      <button class="btn-modal-secondary" onclick="cerrarQR()" style="border-color:rgba(255,85,102,0.3); color:#ff6b7a;">
         <i class="bi bi-x-circle"></i>Cerrar
+      </button>
+      <button class="btn-modal-secondary" onclick="reenviarCorreo()" id="btn-reenviar">
+        <i class="bi bi-envelope"></i>Reenviar
       </button>
     </div>
 
@@ -372,16 +396,20 @@ function abrirQR(qrB64, uuid, evento, zona, nombre, correo, precio) {
   document.getElementById('modal-qr-img').src = `data:image/png;base64,${qrB64}`;
   document.getElementById('modal-uuid').textContent = uuid;
   document.getElementById('modal-evento').textContent = evento;
-  document.getElementById('modal-evento-sub').textContent = evento + ' · Entrada válida para 1 persona';
+  document.getElementById('modal-evento-sub').textContent = 'Entrada válida para 1 persona';
   document.getElementById('modal-zona').textContent = zona;
   document.getElementById('modal-nombre').textContent = nombre;
   document.getElementById('modal-correo').textContent = correo;
   document.getElementById('modal-precio').textContent = '$' + precio;
 
-  // Resetear botón de correo
+  // Resetear botones
   const btnReenviar = document.getElementById('btn-reenviar');
-  btnReenviar.innerHTML = '<i class="bi bi-envelope"></i>Reenviar Correo';
+  btnReenviar.innerHTML = '<i class="bi bi-envelope"></i>Reenviar';
   btnReenviar.disabled = false;
+  
+  const btnDescargar = document.getElementById('btn-descargar');
+  btnDescargar.innerHTML = '<i class="bi bi-download"></i>Descargar';
+  btnDescargar.disabled = false;
 
   document.getElementById('qr-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -399,7 +427,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') cerrarQR();
 });
 
-// ── Descargar Ticket Completo (html2canvas) ──
+// ── Descargar Ticket ──
 function descargarTicket() {
   const btn = document.getElementById('btn-descargar');
   btn.innerHTML = '<i class="bi bi-hourglass-split"></i>Generando...';
@@ -409,9 +437,8 @@ function descargarTicket() {
   
   html2canvas(ticketVisual, { 
     backgroundColor: '#080810',
-    scale: 2,
-    useCORS: true,
-    allowTaint: true
+    scale: 2, 
+    useCORS: true
   }).then(canvas => {
     const link = document.createElement('a');
     link.download = `Ticket-SoundPass-${currentUUID.slice(0,8)}.png`;
@@ -420,7 +447,7 @@ function descargarTicket() {
     
     btn.innerHTML = '<i class="bi bi-check-circle" style="color:#22d97a"></i>¡Descargado!';
     setTimeout(() => {
-      btn.innerHTML = '<i class="bi bi-download"></i>Descargar Ticket';
+      btn.innerHTML = '<i class="bi bi-download"></i>Descargar';
       btn.disabled = false;
     }, 2000);
   }).catch(err => {
@@ -430,7 +457,7 @@ function descargarTicket() {
   });
 }
 
-// ── Reenviar Correo (Llamada al backend) ──
+// ── Reenviar Correo ──
 function reenviarCorreo() {
   const btn = document.getElementById('btn-reenviar');
   btn.innerHTML = '<i class="bi bi-hourglass-split"></i>Enviando...';
@@ -450,7 +477,7 @@ function reenviarCorreo() {
     })
     .finally(() => {
       setTimeout(() => {
-        btn.innerHTML = '<i class="bi bi-envelope"></i>Reenviar Correo';
+        btn.innerHTML = '<i class="bi bi-envelope"></i>Reenviar';
         btn.disabled = false;
       }, 3000);
     });
