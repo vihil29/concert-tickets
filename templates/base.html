@@ -90,18 +90,20 @@
   </nav>
 
   <!-- FLASH MESSAGES -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div style="position:relative;z-index:1;max-width:900px;margin:16px auto;padding:0 16px;">
-        {% for cat, msg in messages %}
-          <div class="sp-alert sp-alert-{{ cat }}">
-            <i class="bi bi-{{ 'exclamation-circle' if cat == 'danger' else 'check-circle' if cat == 'success' else 'info-circle' }}"></i>
-            {{ msg }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% block global_flashes %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div style="position:relative;z-index:1;max-width:900px;margin:16px auto;padding:0 16px;">
+          {% for cat, msg in messages %}
+            <div class="sp-alert sp-alert-{{ cat }}">
+              <i class="bi bi-{{ 'exclamation-circle' if cat == 'danger' else 'check-circle' if cat == 'success' else 'info-circle' }}"></i>
+              {{ msg }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+  {% endblock %}
 
   <!-- CONTENIDO -->
   <main style="position:relative;z-index:1;">

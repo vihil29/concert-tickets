@@ -1,6 +1,7 @@
 <!-- templates/auth/login.html -->
 {% extends "base.html" %}
 {% block title %}Iniciar Sesión — SoundPass{% endblock %}
+{% block global_flashes %}{% endblock %}
 {% block extra_styles %}
   /* Ocultar navbar en páginas de auth */
   .sp-nav { display: none !important; }
@@ -155,7 +156,7 @@
     </form>
     <div class="divider">o</div>
     <div class="reg-link">¿No tienes cuenta? <a href="/auth/registro">Regístrate gratis</a></div>
-  </div>
+  </div>  
 </div>
 
 <script>
