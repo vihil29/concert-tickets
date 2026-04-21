@@ -2,6 +2,15 @@
 {% block title %}{{ evento.nombre }} — SoundPass{% endblock %}
 
 {% block extra_styles %}
+  .cantidad-field{ margin-bottom:14px; }
+  .cantidad-field label{ display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#666; margin-bottom:5px; }
+  .cantidad-wrap{ display:flex; align-items:center; gap:0; border:1px solid #181828; border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.04); width:fit-content; }
+  .btn-qty{ width:36px; height:40px; border:none; background:transparent; color:var(--muted); font-size:1.1rem; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .btn-qty:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
+  .qty-display{ width:44px; height:40px; border:none; background:transparent; color:var(--text); font-size:1rem; font-weight:700; font-family:'DM Sans',sans-serif; text-align:center; outline:none; -moz-appearance:textfield; }
+  .qty-display::-webkit-outer-spin-button, .qty-display::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .qty-max-hint{ font-size:.68rem; color:var(--muted); margin-top:4px; }
+
   .evento-hero{ position:relative; overflow:hidden; background:linear-gradient(180deg,#0f0f1c 0%,var(--dark) 100%); padding:40px 0 0; }
   .evento-hero-inner{ max-width:1100px; margin:0 auto; padding:0 24px; display:flex; gap:32px; align-items:flex-start; }
   .evento-poster{ width:220px; flex-shrink:0; aspect-ratio:3/4; border-radius:16px; overflow:hidden; background:#1a1a2e; display:flex; align-items:center; justify-content:center; font-size:4rem; border:1px solid var(--border); }
@@ -353,9 +362,10 @@
 
   <!-- FORMULARIO -->
   <div class="form-card">
-    <h2><i class="bi bi-ticket-perforated me-2" style="color:var(--gold)"></i>Comprar Ticket</h2>
+    <h2><i class="bi bi-ticket-perforated me-2" style="color:var(--gold)"></i>Comprar Tickets</h2>
     <p class="form-sub">Selecciona tu zona y confirma tus datos</p>
-
+ 
+    <!-- Zona seleccionada (se actualiza via JS al hacer clic en el mapa) -->
     <div class="zona-pill" id="zona-pill">
       <div class="zp-icon"   id="zp-icon">🗺️</div>
       <div class="zp-info">
@@ -364,36 +374,70 @@
       </div>
       <div class="zp-precio" id="zp-precio">—</div>
     </div>
-
+ 
     {% if session.get('usuario_id') %}
     <form action="/payments/checkout/{{ evento.id }}" method="POST" id="form-compra">
-      <input type="hidden" name="zona_id" id="zona-id-hidden" value=""/>
+      <input type="hidden" name="zona_id"  id="zona-id-hidden"  value=""/>
+      <input type="hidden" name="cantidad" id="cantidad-hidden" value="1"/>
+ 
+      <!-- Nombre -->
       <div class="form-field">
         <label>Nombre completo</label>
         <input type="text" class="sp-input" name="nombre" required value="{{ session.nombre }}"/>
       </div>
+ 
+      <!-- Correo -->
       <div class="form-field">
         <label>Correo electrónico</label>
         <input type="email" class="sp-input" name="correo" required value="{{ session.correo }}"/>
       </div>
+ 
+      <!-- ── CANTIDAD ── -->
+      <div class="cantidad-field">
+        <label>Cantidad de entradas</label>
+        <div class="cantidad-wrap">
+          <button type="button" class="btn-qty" onclick="cambiarCantidad(-1)">−</button>
+          <input  type="number" class="qty-display" id="qty-display"
+                  value="1" min="1" max="5" readonly/>
+          <button type="button" class="btn-qty" onclick="cambiarCantidad(1)">+</button>
+        </div>
+        <div class="qty-max-hint">Máximo 5 entradas por transacción</div>
+      </div>
+ 
       <hr class="sp-hr"/>
+ 
+      <!-- Total dinámico -->
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:10px 14px;background:rgba(255,255,255,0.02);
+                  border:1px solid #181828;border-radius:10px;margin-bottom:14px;">
+        <span style="font-size:.75rem;color:#555;text-transform:uppercase;letter-spacing:.8px;">Total a pagar</span>
+        <span id="total-display"
+              style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:#222;transition:color .3s;">
+          $—
+        </span>
+      </div>
+ 
+      <!-- Botón de compra -->
       <button type="button" class="btn-comprar" id="btn-comprar" onclick="intentarComprar()">
         <i class="bi bi-map me-2"></i>Selecciona una zona
       </button>
     </form>
+ 
     {% else %}
     <hr class="sp-hr"/>
     <div class="login-cta">
-      <p>Inicia sesión para comprar tu ticket</p>
+      <p>Inicia sesión para comprar tus tickets</p>
       <a href="/auth/login?next=/evento/{{ evento.id }}">
         <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
       </a>
-      <p style="margin-top:10px;font-size:.78rem;">¿No tienes cuenta? <a href="/auth/registro" style="color:var(--gold)">Regístrate gratis</a></p>
+      <p style="margin-top:10px;font-size:.78rem;">
+        ¿No tienes cuenta? <a href="/auth/registro" style="color:var(--gold)">Regístrate gratis</a>
+      </p>
     </div>
     {% endif %}
-
+ 
     <div class="mt-3" style="color:#1e1e2e;font-size:.7rem;text-align:center;">
-      <i class="bi bi-shield-check me-1"></i>Código único · Un solo uso · Enviado a tu correo
+      <i class="bi bi-shield-check me-1"></i>Pago seguro vía Stripe · QR único por entrada
     </div>
   </div>
 </div>
@@ -465,6 +509,36 @@ for (let i = 0; i < totalSlots; i++) {
   el.addEventListener('mouseleave', () => tip.classList.remove('on'));
   if (zona.disponibles > 0) el.addEventListener('click', () => selectZona(i));
 }
+let precioZonaActual = 0;
+ 
+function cambiarCantidad(delta) {
+  const input = document.getElementById('qty-display');
+  const nuevo = Math.min(5, Math.max(1, parseInt(input.value) + delta));
+  input.value = nuevo;
+  document.getElementById('cantidad-hidden').value = nuevo;
+  actualizarTotal();
+}
+ 
+function actualizarTotal() {
+  const qty     = parseInt(document.getElementById('qty-display').value) || 1;
+  const total   = precioZonaActual * qty;
+  const display = document.getElementById('total-display');
+  if (precioZonaActual > 0) {
+    display.textContent   = `$${total.toFixed(2)}`;
+    display.style.color   = 'var(--gold)';
+  } else {
+    display.textContent   = '$—';
+    display.style.color   = '#222';
+  }
+  // Actualizar texto del botón si ya hay zona seleccionada
+  const btn = document.getElementById('btn-comprar');
+  if (btn && btn.classList.contains('ready') && selectedId) {
+    const zona = ZONAS_DB.find(z => z.id === selectedId);
+    if (zona) {
+      btn.innerHTML = `<i class="bi bi-lightning-charge-fill me-2"></i>Pagar ${qty} entrada${qty > 1 ? 's' : ''} — $${total.toFixed(2)}`;
+    }
+  }
+}
 
 function selectZona(idx) {
   const zona = ZONAS_DB[idx];
@@ -505,6 +579,8 @@ function selectZona(idx) {
     btn.style.cssText = `background:linear-gradient(135deg,${zona.color},${darken(zona.color)});color:${isLight(zona.color)?'#000':'#fff'};box-shadow:0 6px 24px ${hex2rgba(zona.color,.3)}`;
     btn.innerHTML = `<i class="bi bi-lightning-charge-fill me-2"></i>Comprar — ${zona.nombre} ($${zona.precio})`;
   }
+  preciozona = zona.precio;
+  actualizarTotal();
 }
 
 function intentarComprar() {
