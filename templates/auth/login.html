@@ -1,12 +1,9 @@
-<!-- templates/auth/login.html -->
 {% extends "base.html" %}
 {% block title %}Iniciar Sesión — SoundPass{% endblock %}
-{% block global_flashes %}{% endblock %}
+
 {% block extra_styles %}
-  /* Ocultar navbar en páginas de auth */
   .sp-nav { display: none !important; }
 
-  /* Centrar todo el body */
   body {
     display: flex;
     align-items: center;
@@ -15,7 +12,6 @@
     padding: 24px 20px;
   }
 
-  /* El main de base.html no debe interferir */
   main {
     display: flex;
     align-items: center;
@@ -30,17 +26,18 @@
     max-width: 420px;
   }
 
-  /* Flash messages DENTRO del wrap */
+  /* Flash messages */
   .auth-alerts { margin-bottom: 16px; }
   .auth-alert {
     border-radius: 12px; padding: 12px 18px; margin-bottom: 10px;
     display: flex; align-items: center; gap: 10px; font-size: .88rem;
   }
-  .auth-alert-danger  { background: rgba(255,85,102,0.1); color: #ff6b7a; border: 1px solid rgba(255,85,102,0.2); }
-  .auth-alert-warning { background: rgba(255,193,7,0.08); color: #ffc107; border: 1px solid rgba(255,193,7,0.2); }
+  .auth-alert-danger  { background: rgba(255,85,102,0.1);  color: #ff6b7a; border: 1px solid rgba(255,85,102,0.2); }
+  .auth-alert-warning { background: rgba(255,193,7,0.08);  color: #ffc107; border: 1px solid rgba(255,193,7,0.2); }
   .auth-alert-success { background: rgba(34,217,122,0.08); color: var(--green); border: 1px solid rgba(34,217,122,0.2); }
   .auth-alert-info    { background: rgba(74,158,255,0.08); color: var(--blue); border: 1px solid rgba(74,158,255,0.2); }
 
+  /* Logo */
   .logo-area { text-align: center; margin-bottom: 28px; }
   .logo-icon {
     width: 64px; height: 64px; border-radius: 18px;
@@ -56,6 +53,7 @@
   .logo-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 3px; color: var(--gold); }
   .logo-sub  { color: var(--muted); font-size: .78rem; }
 
+  /* Card */
   .card {
     background: var(--card); border: 1px solid rgba(240,165,0,0.15);
     border-radius: 22px; padding: 30px;
@@ -64,11 +62,34 @@
   .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.55rem; letter-spacing: 1px; margin-bottom: 4px; }
   .card-sub   { color: var(--muted); font-size: .8rem; margin-bottom: 24px; }
 
+  /* Fields */
   .field { margin-bottom: 16px; }
-  .field label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 6px; }
+  .field label {
+    display: block; font-size: .7rem; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted); margin-bottom: 6px;
+  }
 
+  /* Fila label + ¿olvidaste? */
+  .field-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .field-header label {
+    font-size: .7rem; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted); margin: 0;
+  }
+  .forgot-link {
+    font-size: .7rem; color: var(--muted); text-decoration: none;
+    transition: color .2s; letter-spacing: .3px;
+  }
+  .forgot-link:hover { color: var(--gold); }
+
+  /* Inputs */
   .inp-wrap { position: relative; display: flex; align-items: center; }
-  .inp-wrap i.icon { position: absolute; left: 14px; color: var(--muted); font-size: 1rem; pointer-events: none; }
+  .inp-wrap i.icon {
+    position: absolute; left: 14px; color: var(--muted);
+    font-size: 1rem; pointer-events: none;
+  }
   .inp-wrap input {
     width: 100%; padding: 12px 14px 12px 42px;
     background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.07);
@@ -76,15 +97,19 @@
     font-family: 'DM Sans', sans-serif; outline: none;
     transition: border-color .2s, box-shadow .2s;
   }
-  .inp-wrap input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(240,165,0,0.1); }
+  .inp-wrap input:focus {
+    border-color: var(--gold); box-shadow: 0 0 0 3px rgba(240,165,0,0.1);
+  }
   .inp-wrap input::placeholder { color: #2a2a3a; }
 
   .toggle-pass {
     position: absolute; right: 12px; background: none; border: none;
-    color: var(--muted); cursor: pointer; padding: 4px; font-size: 1rem; transition: color .2s;
+    color: var(--muted); cursor: pointer; padding: 4px; font-size: 1rem;
+    transition: color .2s;
   }
   .toggle-pass:hover { color: var(--gold); }
 
+  /* Botón principal */
   .btn-login {
     width: 100%; padding: 13px; border: none; border-radius: 12px;
     background: linear-gradient(135deg, var(--gold), var(--gold-dk));
@@ -92,16 +117,21 @@
     font-family: 'DM Sans', sans-serif; cursor: pointer;
     transition: transform .2s, box-shadow .2s;
     box-shadow: 0 8px 24px rgba(240,165,0,0.2);
-    display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin-top: 6px;
   }
   .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(240,165,0,0.3); }
 
+  /* Divider */
   .divider {
     display: flex; align-items: center; gap: 12px;
     margin: 20px 0; color: var(--muted); font-size: .78rem;
   }
-  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06);
+  }
 
+  /* Registro */
   .reg-link { text-align: center; font-size: .85rem; color: var(--muted); }
   .reg-link a { color: var(--gold); text-decoration: none; font-weight: 600; }
 {% endblock %}
@@ -109,7 +139,7 @@
 {% block content %}
 <div class="wrap">
 
-  <!-- Flash messages integrados dentro del contenedor centrado -->
+  <!-- Flash messages centrados -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="auth-alerts">
@@ -124,49 +154,66 @@
   {% endwith %}
 
   <div class="logo-area">
-    <a href="/" style="text-decoration: none; display: inline-block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-      <div class="logo-icon">🎸</div>
-      <div class="logo-name">SoundPass</div>
-    </a>
-    <div class="logo-sub">Festival 2026 · Estadio Nacional</div>
+    <div class="logo-icon">🎸</div>
+    <div class="logo-name">SoundPass</div>
+    <div class="logo-sub">Festival 2025 · Estadio Nacional</div>
   </div>
 
   <div class="card">
     <div class="card-title">Bienvenido de vuelta</div>
     <div class="card-sub">Inicia sesión para acceder a tu cuenta</div>
+
     <form method="POST" action="/auth/login">
+
+      <!-- Correo -->
       <div class="field">
         <label>Correo electrónico</label>
         <div class="inp-wrap">
           <i class="bi bi-envelope icon"></i>
-          <input type="email" name="correo" placeholder="tu@correo.com" autocomplete="email" required/>
+          <input type="email" name="correo"
+                 placeholder="tu@correo.com"
+                 autocomplete="email" required/>
         </div>
       </div>
+
+      <!-- Contraseña + enlace ¿olvidaste? en la misma fila -->
       <div class="field">
-        <label>Contraseña</label>
+        <div class="field-header">
+          <label>Contraseña</label>
+          <a href="/auth/forgot-password" class="forgot-link">
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
         <div class="inp-wrap">
           <i class="bi bi-lock icon"></i>
-          <input type="password" name="password" id="pass-inp" placeholder="••••••••" autocomplete="current-password" required/>
+          <input type="password" name="password" id="pass-inp"
+                 placeholder="••••••••"
+                 autocomplete="current-password" required/>
           <button type="button" class="toggle-pass" onclick="togglePass()">
             <i class="bi bi-eye" id="eye-ic"></i>
           </button>
         </div>
       </div>
+
       <button type="submit" class="btn-login">
         <i class="bi bi-box-arrow-in-right"></i>Iniciar Sesión
       </button>
     </form>
+
     <div class="divider">o</div>
-    <div class="reg-link">¿No tienes cuenta? <a href="/auth/registro">Regístrate gratis</a></div>
-  </div>  
+    <div class="reg-link">
+      ¿No tienes cuenta? <a href="/auth/registro">Regístrate gratis</a>
+    </div>
+  </div>
+
 </div>
 
 <script>
 function togglePass() {
-  const i  = document.getElementById('pass-inp');
-  const ic = document.getElementById('eye-ic');
-  i.type   = i.type === 'password' ? 'text' : 'password';
-  ic.className = i.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+  const inp = document.getElementById('pass-inp');
+  const ic  = document.getElementById('eye-ic');
+  inp.type     = inp.type === 'password' ? 'text' : 'password';
+  ic.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
 }
 </script>
 {% endblock %}
