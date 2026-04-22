@@ -577,10 +577,11 @@ function selectZona(idx) {
   if (btn) {
     btn.className = 'btn-comprar ready';
     btn.style.cssText = `background:linear-gradient(135deg,${zona.color},${darken(zona.color)});color:${isLight(zona.color)?'#000':'#fff'};box-shadow:0 6px 24px ${hex2rgba(zona.color,.3)}`;
-    btn.innerHTML = `<i class="bi bi-lightning-charge-fill me-2"></i>Comprar — ${zona.nombre} ($${zona.precio})`;
+    
   }
-  preciozona = zona.precio;
+  precioZonaActual = zona.precio; 
   actualizarTotal();
+
 }
 
 function intentarComprar() {
